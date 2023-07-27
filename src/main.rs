@@ -120,9 +120,18 @@ impl EventHandler for Handler {
 
             // This is required to fix a potential caching issue with embeds
             msg.embeds.clear();
-            
-            if let Err(why) = msg.edit(&ctx.http, |m| m.content(new_msg)).await {
+
+            if let Err(why) = msg
+                .edit(&ctx.http, |m| {
+                    m.content(new_msg).allowed_mentions(|am| am.empty_parse())
+                })
+                .await
+            {
                 println!("Error changing message: {:?}", why);
+            }
+
+            if let Err(why) = add_reaction.delete(&ctx.http).await {
+                println!("Error clearing reaction: {:?}", why);
             }
         }
     }
