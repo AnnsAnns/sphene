@@ -57,9 +57,11 @@ impl EventHandler for Handler {
             println!("Error sending message: {:?}", why);
         };
 
-        // Delete message
-        if let Err(why) = msg.delete(&context.http).await {
-            println!("Error deleting message: {:?}", why);
+        if !msg.is_private() {
+            // Delete message
+            if let Err(why) = msg.delete(&context.http).await {
+                println!("Error deleting message: {:?}", why);
+            }
         }
     }
 
