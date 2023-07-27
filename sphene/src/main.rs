@@ -83,17 +83,10 @@ impl EventHandler for Handler {
             return;
         }
 
-        if !msg.is_private() {
-            let user = &component.member.as_ref().unwrap().user;
-            // If the user is the bot return
-            if user.bot {
-                return;
-            }
-
-            // Check whether user is correct
-            if !msg.content.contains(&user.id.to_string()) {
-                return;
-            }
+        let user = component.user.id.to_string();
+        // Check whether user is correct
+        if !msg.content.contains(&user) {
+            return;
         }
 
         component
