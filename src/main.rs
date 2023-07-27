@@ -20,27 +20,36 @@ const REMOVE_REACTION: char = '❌';
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
-        if msg.content.contains(TWITTER_URL) {
-            let response = MessageBuilder::new()
-                .mention(&msg.author)
-                .push(": ")
-                .push(msg.content.replace(TWITTER_URL, FXTWITTER_URL))
-                .build();
+        if !msg.content.contains(TWITTER_URL) {
+            return;
+        }
 
-            let rsp_msg = msg.channel_id.say(&context.http, &response).await;
-            if let Err(why) = &rsp_msg {
-                println!("Error sending message: {:?}", why);
-            }
+        let response = MessageBuilder::new()
+            .mention(&msg.author)
+            .push(": ")
+            .push(msg.content.replace(TWITTER_URL, FXTWITTER_URL))
+            .build();
 
-            // Add reaction to the message
-            if let Err(why) = rsp_msg.unwrap().react(&context.http, REMOVE_REACTION).await {
-                println!("Error adding reaction: {:?}", why);
+        let rsp_msg = msg.channel_id.send_message(
+            &context.http, 
+            |m| {
+                m.allowed_mentions(|am| am.empty_parse())
+                .content(response)
             }
+        ).await;
 
-            // Delete message
-            if let Err(why) = msg.delete(&context.http).await {
-                println!("Error deleting message: {:?}", why);
-            }
+        if let Err(why) = &rsp_msg {
+            println!("Error sending message: {:?}", why);
+        }
+
+        // Add reaction to the message
+        if let Err(why) = rsp_msg.unwrap().react(&context.http, REMOVE_REACTION).await {
+            println!("Error adding reaction: {:?}", why);
+        }
+
+        // Delete message
+        if let Err(why) = msg.delete(&context.http).await {
+            println!("Error deleting message: {:?}", why);
         }
     }
 
@@ -64,7 +73,7 @@ impl EventHandler for Handler {
         }
 
         // If the user is the person mentioned in the message delete the message
-        if !msg.mentions.contains(&user) {
+        if !msg.content.contains(&user.id.to_string()) {
             return;
         }
 
