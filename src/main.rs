@@ -5,9 +5,12 @@ extern crate dotenv;
 use dotenv::dotenv;
 
 use serenity::async_trait;
+use serenity::model::application::component::ButtonStyle;
+use serenity::model::application::interaction::Interaction;
+use serenity::model::application::interaction::InteractionResponseType;
+use serenity::model::application::interaction::InteractionType;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
-use serenity::model::prelude::Reaction;
 use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
 
@@ -16,8 +19,6 @@ struct Handler;
 const TWITTER_URL: &str = "https://twitter.com/";
 const FXTWITTER_URL: &str = "https://fxtwitter.com/";
 const VXTWITTER_URL: &str = "https://vxtwitter.com/";
-const REMOVE_REACTION: char = '❌';
-const SWITCH_REACTION: char = '🔄';
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -32,27 +33,29 @@ impl EventHandler for Handler {
             .push(msg.content.replace(TWITTER_URL, FXTWITTER_URL))
             .build();
 
-        let rsp_msg = msg
+        if let Err(why) = msg
             .channel_id
             .send_message(&context.http, |m| {
-                m.allowed_mentions(|am| am.empty_parse()).content(response)
+                m.allowed_mentions(|am| am.empty_parse()).content(response);
+                m.components(|f| {
+                    f.create_action_row(|f| {
+                        f.create_button(|b| {
+                            b.custom_id("remove")
+                                .label("Remove")
+                                .style(ButtonStyle::Secondary)
+                        })
+                        .create_button(|b| {
+                            b.custom_id("switch")
+                                .label("Switch")
+                                .style(ButtonStyle::Secondary)
+                        })
+                    })
+                })
             })
-            .await;
-
-        if let Err(why) = &rsp_msg {
+            .await
+        {
             println!("Error sending message: {:?}", why);
-        }
-        let rsp_msg = rsp_msg.unwrap();
-
-        // Add remove reaction to the message
-        if let Err(why) = &rsp_msg.react(&context.http, REMOVE_REACTION).await {
-            println!("Error adding remove reaction: {:?}", why);
-        }
-
-        // Add switch reaction to the message
-        if let Err(why) = &rsp_msg.react(&context.http, SWITCH_REACTION).await {
-            println!("Error adding switching reaction: {:?}", why);
-        }
+        };
 
         // Delete message
         if let Err(why) = msg.delete(&context.http).await {
@@ -60,40 +63,48 @@ impl EventHandler for Handler {
         }
     }
 
-    async fn reaction_add(&self, ctx: Context, add_reaction: Reaction) {
-        if !(add_reaction.emoji.unicode_eq(&REMOVE_REACTION.to_string())
-            || add_reaction.emoji.unicode_eq(&SWITCH_REACTION.to_string()))
-        {
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        // Check whether button has been pressed
+        if interaction.kind() != InteractionType::MessageComponent {
             return;
         }
 
-        let mut msg = add_reaction.message(&ctx.http).await.unwrap();
-        // If the message is not from the bot return
+        let component = interaction.as_message_component().unwrap().clone();
+        let custom_id = component.data.custom_id.to_string();
+
+        if custom_id != "remove" && custom_id != "switch" {
+            return;
+        }
+
+        let msg = &component.message;
         if !msg.author.bot {
             return;
         }
 
-        // Get the user who added the reaction
-        let user = add_reaction
-            .user_id
-            .unwrap()
-            .to_user(&ctx.http)
+        if !msg.is_private() {
+            let user = &component.member.as_ref().unwrap().user;
+            // If the user is the bot return
+            if user.bot {
+                return;
+            }
+
+            // Check whether user is correct
+            if !msg.content.contains(&user.id.to_string()) {
+                return;
+            }
+        }
+
+        component
+            .create_interaction_response(&ctx.http, |r| {
+                r.kind(InteractionResponseType::DeferredUpdateMessage)
+            })
             .await
             .unwrap();
-        // If the user is the bot return
-        if user.bot {
-            return;
-        }
 
-        // Check whether user is correct
-        if !msg.content.contains(&user.id.to_string()) {
-            return;
-        }
-
-        // If not the remove reaction return
-        if add_reaction.emoji.unicode_eq(&REMOVE_REACTION.to_string()) {
+        if custom_id == "remove" {
             if let Err(why) = msg.delete(&ctx.http).await {
                 println!("Error deleting message: {:?}", why);
+                return;
             }
 
             // Deleted Message Response
@@ -118,21 +129,12 @@ impl EventHandler for Handler {
                 new_msg = new_msg.replace(VXTWITTER_URL, FXTWITTER_URL);
             }
 
-            // This is required to fix a potential caching issue with embeds
-            msg.embeds.clear();
-
-            if let Err(why) = msg
-                .edit(&ctx.http, |m| {
+            msg.channel_id
+                .edit_message(&ctx.http, msg.id, |m| {
                     m.content(new_msg).allowed_mentions(|am| am.empty_parse())
                 })
                 .await
-            {
-                println!("Error changing message: {:?}", why);
-            }
-
-            if let Err(why) = add_reaction.delete(&ctx.http).await {
-                println!("Error clearing reaction: {:?}", why);
-            }
+                .unwrap();
         }
     }
 
@@ -150,9 +152,7 @@ async fn main() {
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
-        | GatewayIntents::MESSAGE_CONTENT
-        | GatewayIntents::GUILD_MESSAGE_REACTIONS
-        | GatewayIntents::DIRECT_MESSAGE_REACTIONS;
+        | GatewayIntents::MESSAGE_CONTENT;
     let mut client = Client::builder(&token, intents)
         .event_handler(Handler)
         .await
