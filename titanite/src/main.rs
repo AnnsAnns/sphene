@@ -78,6 +78,14 @@ impl EventHandler for Handler {
             return;
         }
 
+        // Make the Discord API happy no matter what :)
+        component
+        .create_interaction_response(&ctx.http, |r| {
+            r.kind(InteractionResponseType::DeferredUpdateMessage)
+        })
+        .await
+        .unwrap();
+
         let msg = &component.message;
         if !msg.author.bot {
             return;
@@ -88,13 +96,6 @@ impl EventHandler for Handler {
         if !msg.content.contains(&user) {
             return;
         }
-
-        component
-            .create_interaction_response(&ctx.http, |r| {
-                r.kind(InteractionResponseType::DeferredUpdateMessage)
-            })
-            .await
-            .unwrap();
 
         if custom_id == "remove" {
             if let Err(why) = msg.delete(&ctx.http).await {
