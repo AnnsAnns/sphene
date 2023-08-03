@@ -37,6 +37,9 @@ impl EventHandler for Handler {
             .channel_id
             .send_message(&context.http, |m| {
                 m.allowed_mentions(|am| am.empty_parse()).content(response);
+                if msg.referenced_message.is_some() {
+                    m.reference_message(msg.message_reference.clone().unwrap());
+                }
                 m.components(|f| {
                     f.create_action_row(|f| {
                         f.create_button(|b| {
