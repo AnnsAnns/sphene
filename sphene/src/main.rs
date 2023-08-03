@@ -101,22 +101,23 @@ impl EventHandler for Handler {
         }
 
         if custom_id == "remove" {
-            component
-            .edit_original_interaction_response(&ctx.http, |m| {
+            if let Err(why) = component.edit_original_interaction_response(&ctx.http, |m| {
                 m.content("💣 Deleted Message").allowed_mentions(|am| am.empty_parse());
                 m.components(|c| c)
             })
             .await
-            .unwrap();
+            {
+                println!("Error editing message: {:?}", why);
+            }
 
             // Sleep for 5 seconds
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
 
             // Delete the response message
-            component
-            .delete_original_interaction_response(&ctx.http)
-            .await
-            .unwrap();
+            if let Err(why) = component.delete_original_interaction_response(&ctx.http)
+            .await {
+                println!("Error deleting message: {:?}", why);
+            }
         } else {
             let mut new_msg = msg.content.clone();
 
@@ -126,12 +127,12 @@ impl EventHandler for Handler {
                 new_msg = new_msg.replace(VXTWITTER_URL, FXTWITTER_URL);
             }
 
-            component
-                .edit_original_interaction_response(&ctx.http, |m| {
-                    m.content(new_msg).allowed_mentions(|am| am.empty_parse())
-                })
-                .await
-                .unwrap();
+            if let Err(why) = component.edit_original_interaction_response(&ctx.http, |m| {
+                m.content(new_msg).allowed_mentions(|am| am.empty_parse())
+            })
+            .await {
+                println!("Error editing message: {:?}", why);
+            }
         }
     }
 
