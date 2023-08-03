@@ -101,24 +101,22 @@ impl EventHandler for Handler {
         }
 
         if custom_id == "remove" {
-            if let Err(why) = msg.delete(&ctx.http).await {
-                println!("Error deleting message: {:?}", why);
-                return;
-            }
-
-            // Deleted Message Response
-            let rsp_msg = msg.channel_id.say(&ctx.http, "💣 Deleted Message").await;
-            if let Err(why) = &rsp_msg {
-                println!("Error sending message: {:?}", why);
-            }
+            component
+            .edit_original_interaction_response(&ctx.http, |m| {
+                m.content("💣 Deleted Message").allowed_mentions(|am| am.empty_parse());
+                m.components(|c| c)
+            })
+            .await
+            .unwrap();
 
             // Sleep for 5 seconds
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
 
             // Delete the response message
-            if let Err(why) = rsp_msg.unwrap().delete(&ctx.http).await {
-                println!("Error deleting message: {:?}", why);
-            }
+            component
+            .delete_original_interaction_response(&ctx.http)
+            .await
+            .unwrap();
         } else {
             let mut new_msg = msg.content.clone();
 
@@ -128,8 +126,8 @@ impl EventHandler for Handler {
                 new_msg = new_msg.replace(VXTWITTER_URL, FXTWITTER_URL);
             }
 
-            msg.channel_id
-                .edit_message(&ctx.http, msg.id, |m| {
+            component
+                .edit_original_interaction_response(&ctx.http, |m| {
                     m.content(new_msg).allowed_mentions(|am| am.empty_parse())
                 })
                 .await
