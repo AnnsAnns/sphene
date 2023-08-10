@@ -17,20 +17,21 @@ use serenity::utils::MessageBuilder;
 struct Handler;
 
 const TWITTER_URL: &str = "https://twitter.com/";
+const X_URL: &str = "https://x.com/";
 const FXTWITTER_URL: &str = "https://fxtwitter.com/";
 const VXTWITTER_URL: &str = "https://vxtwitter.com/";
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
-        if !msg.content.contains(TWITTER_URL) {
+        if !(msg.content.contains(TWITTER_URL) || msg.content.contains(X_URL)) {
             return;
         }
 
         let response = MessageBuilder::new()
             .mention(&msg.author)
             .push(": ")
-            .push(msg.content.replace(TWITTER_URL, FXTWITTER_URL))
+            .push(msg.content.replace(TWITTER_URL, FXTWITTER_URL).replace(X_URL, FXTWITTER_URL))
             .build();
 
         if let Err(why) = msg
