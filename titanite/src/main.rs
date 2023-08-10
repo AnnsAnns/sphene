@@ -38,6 +38,9 @@ impl EventHandler for Handler {
             .channel_id
             .send_message(&context.http, |m| {
                 m.allowed_mentions(|am| am.empty_parse()).content(response);
+                if msg.referenced_message.is_some() {
+                    m.reference_message(msg.message_reference.clone().unwrap());
+                }
                 m.components(|f| {
                     f.create_action_row(|f| {
                         f.create_button(|b| {
@@ -99,22 +102,21 @@ impl EventHandler for Handler {
         }
 
         if custom_id == "remove" {
-            if let Err(why) = msg.delete(&ctx.http).await {
-                println!("Error deleting message: {:?}", why);
-                return;
-            }
-
-            // Deleted Message Response
-            let rsp_msg = msg.channel_id.say(&ctx.http, "💣 Deleted Message").await;
-            if let Err(why) = &rsp_msg {
-                println!("Error sending message: {:?}", why);
+            if let Err(why) = component.edit_original_interaction_response(&ctx.http, |m| {
+                m.content("💣 Deleted Message").allowed_mentions(|am| am.empty_parse());
+                m.components(|c| c)
+            })
+            .await
+            {
+                println!("Error editing message: {:?}", why);
             }
 
             // Sleep for 5 seconds
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
 
             // Delete the response message
-            if let Err(why) = rsp_msg.unwrap().delete(&ctx.http).await {
+            if let Err(why) = component.delete_original_interaction_response(&ctx.http)
+            .await {
                 println!("Error deleting message: {:?}", why);
             }
         } else {
@@ -126,12 +128,12 @@ impl EventHandler for Handler {
                 new_msg = new_msg.replace(VXTWITTER_URL, FXTWITTER_URL);
             }
 
-            msg.channel_id
-                .edit_message(&ctx.http, msg.id, |m| {
-                    m.content(new_msg).allowed_mentions(|am| am.empty_parse())
-                })
-                .await
-                .unwrap();
+            if let Err(why) = component.edit_original_interaction_response(&ctx.http, |m| {
+                m.content(new_msg).allowed_mentions(|am| am.empty_parse())
+            })
+            .await {
+                println!("Error editing message: {:?}", why);
+            }
         }
     }
 
