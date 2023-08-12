@@ -4,13 +4,16 @@ extern crate dotenv;
 
 use dotenv::dotenv;
 
+use reqwest::Url;
 use serenity::async_trait;
+use serenity::json::Value;
 use serenity::model::application::component::ButtonStyle;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::InteractionType;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
+use serenity::model::prelude::AttachmentType;
 use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
 
@@ -18,8 +21,7 @@ struct Handler;
 
 const TWITTER_URL: &str = "https://twitter.com/";
 const X_URL: &str = "https://x.com/";
-const FXTWITTER_URL: &str = "https://fxtwitter.com/";
-const VXTWITTER_URL: &str = "https://vxtwitter.com/";
+const FXTWITTER_URL: &str = "https://d.fxtwitter.com/";
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -28,16 +30,22 @@ impl EventHandler for Handler {
             return;
         }
 
-        let response = MessageBuilder::new()
-            .mention(&msg.author)
-            .push(": ")
-            .push(msg.content.replace(TWITTER_URL, FXTWITTER_URL).replace(X_URL, FXTWITTER_URL))
-            .build();
+        let mut url = String::from(msg.content.clone());
+        if url.contains(TWITTER_URL) {
+            url = url.replace(TWITTER_URL, FXTWITTER_URL);
+        } else {
+            url = url.replace(X_URL, FXTWITTER_URL);
+        }
+
+        if !url.contains(".mp4") {
+            url.push_str(".jpg");
+        }
 
         if let Err(why) = msg
             .channel_id
             .send_message(&context.http, |m| {
-                m.allowed_mentions(|am| am.empty_parse()).content(response);
+                m.allowed_mentions(|am| am.empty_parse())
+                    .add_file(AttachmentType::Image(Url::parse(&url).unwrap()));
                 if msg.referenced_message.is_some() {
                     m.reference_message(msg.message_reference.clone().unwrap());
                 }
@@ -47,12 +55,14 @@ impl EventHandler for Handler {
                             b.custom_id("remove")
                                 .label("Remove")
                                 .style(ButtonStyle::Secondary)
-                        })
-                        .create_button(|b| {
-                            b.custom_id("switch")
-                                .label("Switch")
-                                .style(ButtonStyle::Secondary)
-                        })
+                        });
+                        f.create_button(|b| {
+                            b.0.insert("url", Value::from(msg.content.to_string()));
+                            b.style(ButtonStyle::Link)
+                                .label("Source")
+                        });
+                        println!("Message: {:?}", f);
+                        f
                     })
                 })
             })
@@ -78,62 +88,43 @@ impl EventHandler for Handler {
         let component = interaction.as_message_component().unwrap().clone();
         let custom_id = component.data.custom_id.to_string();
 
-        if custom_id != "remove" && custom_id != "switch" {
+        if custom_id != "remove" {
             return;
         }
 
         // Make the Discord API happy no matter what :)
         component
-        .create_interaction_response(&ctx.http, |r| {
-            r.kind(InteractionResponseType::DeferredUpdateMessage)
-        })
-        .await
-        .unwrap();
+            .create_interaction_response(&ctx.http, |r| {
+                r.kind(InteractionResponseType::DeferredUpdateMessage)
+            })
+            .await
+            .unwrap();
 
         let msg = &component.message;
         if !msg.author.bot {
             return;
         }
 
-        let user = component.user.id.to_string();
-        // Check whether user is correct
-        if !msg.content.contains(&user) {
-            return;
-        }
-
-        if custom_id == "remove" {
-            if let Err(why) = component.edit_original_interaction_response(&ctx.http, |m| {
-                m.content("💣 Deleted Message").allowed_mentions(|am| am.empty_parse());
+        if let Err(why) = component
+            .edit_original_interaction_response(&ctx.http, |m| {
+                m.content("💣 Deleted Message")
+                    .allowed_mentions(|am| am.empty_parse());
                 m.components(|c| c)
             })
             .await
-            {
-                println!("Error editing message: {:?}", why);
-            }
+        {
+            println!("Error editing message: {:?}", why);
+        }
 
-            // Sleep for 5 seconds
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        // Sleep for 5 seconds
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-            // Delete the response message
-            if let Err(why) = component.delete_original_interaction_response(&ctx.http)
-            .await {
-                println!("Error deleting message: {:?}", why);
-            }
-        } else {
-            let mut new_msg = msg.content.clone();
-
-            if new_msg.contains(FXTWITTER_URL) {
-                new_msg = new_msg.replace(FXTWITTER_URL, VXTWITTER_URL);
-            } else {
-                new_msg = new_msg.replace(VXTWITTER_URL, FXTWITTER_URL);
-            }
-
-            if let Err(why) = component.edit_original_interaction_response(&ctx.http, |m| {
-                m.content(new_msg).allowed_mentions(|am| am.empty_parse())
-            })
-            .await {
-                println!("Error editing message: {:?}", why);
-            }
+        // Delete the response message
+        if let Err(why) = component
+            .delete_original_interaction_response(&ctx.http)
+            .await
+        {
+            println!("Error deleting message: {:?}", why);
         }
     }
 
