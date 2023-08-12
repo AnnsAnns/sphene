@@ -1,16 +1,10 @@
-## Sphene
+## Sphene-Thorium
 
-Sphene is a discord bot I made in Rust in order to fix the extremely annoying Twitter embed bug in a painless way by replacing messages with fxtwitter.com.
-
-![](./.github/screenshot.png)
-
-### Invite
-
-https://discord.com/api/oauth2/authorize?client_id=1134171949338214491&permissions=292057802816&scope=bot
+Sphene Thorium is a **hard fork** of [Sphene](https://github.com/AnnsAnna/sphene). This version downloads the image of the tweet and includes a backlink to the original tweet and is intended for preservation (Basically a Twitter bookmarks alternative). Compared to the public Sphene bot this bot is intended to only ever be used by one server/person given the differences.
 
 ## Run Yourself
 
-To run it yourself either compile the code via `cargo build --release` or just use the [public bot](https://discord.com/api/oauth2/authorize?client_id=1134171949338214491&permissions=292057802816&scope=bot).
+To run it yourself either compile the code via `cargo build --release`.
 
 ### License
 
