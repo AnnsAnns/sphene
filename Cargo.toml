@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "sphene",
+    "thorium",
+    "titanite",
+]
+resolver = "2"
+
+[workspace.package]
+version = "1.0.0"
+authors = ["AnnsAnn"]

@@ -1,4 +1,4 @@
-# Monorepo for the Sphene Family of Projects
+# Sphene Family of Projects
 
 ### This is a monorepo for the 3 Sphene (CaTiSiO5) projects.
 
