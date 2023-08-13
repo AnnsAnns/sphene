@@ -12,3 +12,4 @@ reqwest = "0.11.18"
 scraper = "0.17.1"
 serenity = { version = "0.11.6", default-features = false, features = ["client", "gateway", "rustls_backend", "model"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+thorium = { path = "../thorium" }
