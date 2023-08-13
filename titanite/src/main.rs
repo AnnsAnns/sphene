@@ -4,6 +4,7 @@ extern crate dotenv;
 
 use dotenv::dotenv;
 
+use reqwest::redirect;
 use reqwest::Url;
 use serenity::async_trait;
 use serenity::json::Value;
@@ -24,8 +25,10 @@ struct Handler {
 }
 
 const TWITTER_URL: &str = "https://twitter.com/";
+const BASE_HOST_TWITTER: &str = "twitter.com";
+const BASE_HOST_X: &str = "x.com";
 const X_URL: &str = "https://x.com/";
-const FXTWITTER_URL: &str = "https://d.fxtwitter.com/";
+const FXTWITTER_URL: &str = "https://fxtwitter.com/";
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -44,8 +47,39 @@ impl EventHandler for Handler {
             url = url.replace(X_URL, FXTWITTER_URL);
         }
 
-        if !url.contains(".mp4") {
-            url.push_str(".jpg");
+        // We don't want to follow the redirect so we can get the metadata
+        let client = reqwest::Client::builder()
+            .redirect(redirect::Policy::custom(|attempt| {
+                if attempt.url().host_str() == Some(BASE_HOST_TWITTER) || attempt.url().host_str() == Some(BASE_HOST_X) {
+                    attempt.stop()
+                } else {
+                    attempt.follow()
+                }
+            }))
+            .user_agent("bot discord")
+            .build()
+            .unwrap();
+        let request = client.get(&url).send().await.unwrap();
+        let metadata = request.headers();
+
+        println!("{:?}", metadata);
+
+        if metadata.get("og:vidoe").is_some() {
+            url = metadata
+                .get("og:vidoe")
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+        } else if metadata.get("og:image").is_some() {
+            url = metadata
+                .get("og:image")
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+        } else {
+            return;
         }
 
         let channel_id = if msg.is_private() {
