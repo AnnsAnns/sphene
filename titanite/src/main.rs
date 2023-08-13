@@ -18,6 +18,7 @@ use serenity::model::prelude::AttachmentType;
 use serenity::model::prelude::ChannelId;
 use serenity::model::prelude::UserId;
 use serenity::prelude::*;
+use tokio::task::spawn_blocking;
 
 struct Handler {
     channel_id: ChannelId,
@@ -25,8 +26,6 @@ struct Handler {
 }
 
 const TWITTER_URL: &str = "https://twitter.com/";
-const BASE_HOST_TWITTER: &str = "twitter.com";
-const BASE_HOST_X: &str = "x.com";
 const X_URL: &str = "https://x.com/";
 const FXTWITTER_URL: &str = "https://fxtwitter.com/";
 
@@ -49,38 +48,36 @@ impl EventHandler for Handler {
 
         // We don't want to follow the redirect so we can get the metadata
         let client = reqwest::Client::builder()
-            .redirect(redirect::Policy::custom(|attempt| {
-                if attempt.url().host_str() == Some(BASE_HOST_TWITTER) || attempt.url().host_str() == Some(BASE_HOST_X) {
-                    attempt.stop()
-                } else {
-                    attempt.follow()
-                }
-            }))
-            .user_agent("bot discord")
+            .user_agent("bot")
             .build()
             .unwrap();
-        let request = client.get(&url).send().await.unwrap();
-        let metadata = request.headers();
+        let request = client
+            .get(&url)
+            .header("user-agent", "bot")
+            .send()
+            .await
+            .unwrap();
+        let content = request.text().await.unwrap();
 
-        println!("{:?}", metadata);
-
-        if metadata.get("og:vidoe").is_some() {
-            url = metadata
-                .get("og:vidoe")
+        // Check if content has a meta property and return it in a blocking thread
+        url = spawn_blocking(move || {
+            let selector_img = scraper::Selector::parse("meta[property='og:image']").unwrap();
+            let selector_video = scraper::Selector::parse("meta[property='og:video']").unwrap();
+            let html = scraper::Html::parse_document(content.as_str());
+            html.select(&selector_video)
+                .next()
+                .unwrap_or_else(|| {
+                    html.select(&selector_img)
+                        .next()
+                        .unwrap_or_else(|| panic!("No meta property og:image or og:video found"))
+                })
+                .value()
+                .attr("content")
                 .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string();
-        } else if metadata.get("og:image").is_some() {
-            url = metadata
-                .get("og:image")
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string();
-        } else {
-            return;
-        }
+                .to_string()
+        })
+        .await
+        .unwrap();
 
         let channel_id = if msg.is_private() {
             self.channel_id
