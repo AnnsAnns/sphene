@@ -1409,6 +1409,7 @@ version = "1.0.0"
 dependencies = [
  "dotenv",
  "serenity",
+ "thorium",
  "tokio",
 ]
 

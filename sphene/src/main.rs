@@ -13,25 +13,22 @@ use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
+use thorium::UrlType;
+use thorium::convert_url;
 
 struct Handler;
-
-const TWITTER_URL: &str = "https://twitter.com/";
-const X_URL: &str = "https://x.com/";
-const FXTWITTER_URL: &str = "https://fxtwitter.com/";
-const VXTWITTER_URL: &str = "https://vxtwitter.com/";
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
-        if !(msg.content.contains(TWITTER_URL) || msg.content.contains(X_URL)) {
+        if !thorium::is_twitter_url(msg.content.as_str()) {
             return;
         }
 
         let response = MessageBuilder::new()
             .mention(&msg.author)
             .push(": ")
-            .push(msg.content.replace(TWITTER_URL, FXTWITTER_URL).replace(X_URL, FXTWITTER_URL))
+            .push(thorium::convert_url_lazy(msg.content.clone(), UrlType::Fxtwitter).await)
             .build();
 
         if let Err(why) = msg
@@ -122,10 +119,10 @@ impl EventHandler for Handler {
         } else {
             let mut new_msg = msg.content.clone();
 
-            if new_msg.contains(FXTWITTER_URL) {
-                new_msg = new_msg.replace(FXTWITTER_URL, VXTWITTER_URL);
+            if UrlType::from_string(&new_msg) == UrlType::Fxtwitter {
+                new_msg = convert_url(new_msg, UrlType::Fxtwitter, UrlType::Vxtwitter).await;
             } else {
-                new_msg = new_msg.replace(VXTWITTER_URL, FXTWITTER_URL);
+                new_msg = convert_url(new_msg, UrlType::Vxtwitter, UrlType::Fxtwitter).await;
             }
 
             if let Err(why) = component.edit_original_interaction_response(&ctx.http, |m| {

@@ -18,7 +18,7 @@ pub enum UrlType {
 }
 
 impl UrlType {
-    fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match *self {
             UrlType::Twitter => TWITTER_URL,
             UrlType::X => X_URL,
@@ -29,7 +29,7 @@ impl UrlType {
         }
     }
 
-    fn from_string(url: &str) -> UrlType {
+    pub fn from_string(url: &str) -> UrlType {
         if url.contains(TWITTER_URL) {
             return UrlType::Twitter;
         } else if url.contains(X_URL) {
