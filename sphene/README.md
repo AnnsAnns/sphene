@@ -1,6 +1,8 @@
 ## Sphene
 
-Sphene is a discord bot I made in Rust in order to fix the extremely annoying Twitter embed bug in a painless way by replacing messages with fxtwitter.com.
+Sphene is a discord bot that replaces twitter links with various other sources that aim to fix the bug/broken embeds twitter has nowadays.
+
+### Example
 
 ![](./.github/screenshot.png)
 
@@ -8,7 +10,7 @@ Sphene is a discord bot I made in Rust in order to fix the extremely annoying Tw
 
 https://discord.com/api/oauth2/authorize?client_id=1134171949338214491&permissions=292057802816&scope=bot
 
-## Run Yourself
+### Run Yourself
 
 To run it yourself either compile the code via `cargo build --release` or just use the [public bot](https://discord.com/api/oauth2/authorize?client_id=1134171949338214491&permissions=292057802816&scope=bot).
 
