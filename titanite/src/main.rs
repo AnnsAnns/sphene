@@ -4,7 +4,6 @@ extern crate dotenv;
 
 use dotenv::dotenv;
 
-use reqwest::redirect;
 use reqwest::Url;
 use serenity::async_trait;
 use serenity::json::Value;
@@ -40,7 +39,7 @@ impl EventHandler for Handler {
             return;
         }
 
-        let mut url = String::from(msg.content.clone());
+        let mut url = msg.content.clone();
         if url.contains(TWITTER_URL) {
             url = url.replace(TWITTER_URL, FXTWITTER_URL);
         } else {
@@ -71,8 +70,8 @@ impl EventHandler for Handler {
                 return "0".to_string();
             }
 
-            let url = if vid.is_some() {
-                vid.unwrap()
+            let url = if let Some(vid) = vid {
+                vid
             } else {
                 img.unwrap()
             };
