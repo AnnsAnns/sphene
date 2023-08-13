@@ -26,6 +26,7 @@ struct Handler {
 }
 
 const TWITTER_URL: &str = "https://twitter.com/";
+const MOSAIC_URL: &str = "https://mosaic.fxtwitter.com/";
 const X_URL: &str = "https://x.com/";
 const FXTWITTER_URL: &str = "https://fxtwitter.com/";
 
@@ -61,23 +62,30 @@ impl EventHandler for Handler {
 
         // Check if content has a meta property and return it in a blocking thread
         url = spawn_blocking(move || {
-            let selector_img = scraper::Selector::parse("meta[property='og:image']").unwrap();
+            let selector_img = scraper::Selector::parse("meta[property='twitter:image']").unwrap();
             let selector_video = scraper::Selector::parse("meta[property='og:video']").unwrap();
             let html = scraper::Html::parse_document(content.as_str());
-            html.select(&selector_video)
-                .next()
-                .unwrap_or_else(|| {
-                    html.select(&selector_img)
-                        .next()
-                        .unwrap_or_else(|| panic!("No meta property og:image or og:video found"))
-                })
-                .value()
-                .attr("content")
-                .unwrap()
-                .to_string()
+            let vid = html.select(&selector_video).next();
+            let img = html.select(&selector_img).next();
+            if vid.is_none() && img.is_none() {
+                return "0".to_string();
+            }
+
+            let url = if vid.is_some() {
+                vid.unwrap()
+            } else {
+                img.unwrap()
+            };
+
+            url.value().attr("content").unwrap().to_string()
         })
         .await
         .unwrap();
+
+        // Check if it's a mosaic
+        if url.contains(MOSAIC_URL) {
+            url.push_str(".jpg")
+        }
 
         let channel_id = if msg.is_private() {
             self.channel_id
@@ -87,12 +95,16 @@ impl EventHandler for Handler {
 
         if let Err(why) = channel_id
             .send_message(&context.http, |m| {
-                m.allowed_mentions(|am| am.empty_parse())
-                    .add_file(AttachmentType::Image(Url::parse(&url).unwrap()));
+                m.allowed_mentions(|am| am.empty_parse());
+                if url != "0" {
+                    m.add_file(AttachmentType::Image(Url::parse(&url).unwrap()));
+                }
                 if msg.referenced_message.is_some() {
                     m.reference_message(msg.message_reference.clone().unwrap());
                 }
-                if channel_id == self.channel_id {
+                if url == "0" {
+                    m.content(msg.content.clone());
+                } else if channel_id == self.channel_id {
                     m.content(format!("<{}>", msg.content.clone()));
                 }
                 m.components(|f| {
