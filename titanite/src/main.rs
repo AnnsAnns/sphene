@@ -15,10 +15,12 @@ use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::prelude::AttachmentType;
 use serenity::model::prelude::ChannelId;
+use serenity::model::prelude::UserId;
 use serenity::prelude::*;
 
 struct Handler {
     channel_id: ChannelId,
+    user_id: UserId,
 }
 
 const TWITTER_URL: &str = "https://twitter.com/";
@@ -28,11 +30,10 @@ const FXTWITTER_URL: &str = "https://d.fxtwitter.com/";
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
-        if msg.author.bot {
-            return;
-        }
-
-        if !(msg.content.contains(TWITTER_URL) || msg.content.contains(X_URL)) {
+        if msg.author.id != self.user_id
+            || msg.author.bot
+            || !(msg.content.contains(TWITTER_URL) || msg.content.contains(X_URL))
+        {
             return;
         }
 
@@ -47,7 +48,11 @@ impl EventHandler for Handler {
             url.push_str(".jpg");
         }
 
-        let channel_id = if msg.is_private() { self.channel_id } else { msg.channel_id };
+        let channel_id = if msg.is_private() {
+            self.channel_id
+        } else {
+            msg.channel_id
+        };
 
         if let Err(why) = channel_id
             .send_message(&context.http, |m| {
@@ -68,8 +73,7 @@ impl EventHandler for Handler {
                         });
                         f.create_button(|b| {
                             b.0.insert("url", Value::from(msg.content.to_string()));
-                            b.style(ButtonStyle::Link)
-                                .label("Source")
+                            b.style(ButtonStyle::Link).label("Source")
                         })
                     })
                 })
@@ -149,12 +153,14 @@ async fn main() {
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let channel_id = env::var("CHANNEL_ID").expect("Expected a channel id in the environment");
+    let user_id = env::var("USER_ID").expect("Expected a user id in the environment");
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
     let mut client = Client::builder(&token, intents)
         .event_handler(Handler {
             channel_id: ChannelId::from(channel_id.parse::<u64>().unwrap()),
+            user_id: UserId::from(user_id.parse::<u64>().unwrap()),
         })
         .await
         .expect("Err creating client");
