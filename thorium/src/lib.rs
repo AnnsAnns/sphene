@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use tokio::task::spawn_blocking;
 
 pub const TWITTER_URL: &str = "https://twitter.com/";
@@ -6,6 +7,8 @@ const FXTWITTER_URL: &str = "https://fxtwitter.com/";
 const VXTWITTER_URL: &str = "https://vxtwitter.com/";
 const MOSAIC_URL: &str = "https://mosaic.fxtwitter.com/";
 const USER_AGENT: &str = "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)";
+const VXTWITTER_COMBINER_URL: &str = "https://vxtwitter.com/rendercombined.jpg?imgs=";
+const VXTWITTER_API_URL: &str = "https://api.vxtwitter.com/";
 
 #[derive(Debug, PartialEq)]
 pub enum UrlType {
@@ -62,45 +65,82 @@ pub fn is_twitter_url(url: &str) -> bool {
     url.contains(TWITTER_URL) || url.contains(X_URL)
 }
 
+#[derive(Deserialize)]
+struct APIFXResponse {
+    #[serde(rename = "mediaURLs")]
+    media_urls: Vec<String>,
+}
+
 pub async fn get_media_from_url(mut url: String) -> String {
+    let source = UrlType::from_string(&url);
+
+    if source == UrlType::Vxtwitter {
+        url = url.replace(VXTWITTER_URL, VXTWITTER_API_URL);
+    }
+
+    println!("URL: {}", url);
+
     // We don't want to follow the redirect so we can get the metadata
     let client = reqwest::Client::builder()
         .user_agent(USER_AGENT)
         .build()
         .unwrap();
+
     let request = client
         .get(&url)
         .header("user-agent", USER_AGENT)
         .send()
         .await
         .unwrap();
-    let content = request.text().await.unwrap();
 
-    // Check if content has a meta property and return it in a blocking thread
-    url = spawn_blocking(move || {
-        let selector_img = scraper::Selector::parse("meta[property='twitter:image']").unwrap();
-        let selector_video = scraper::Selector::parse("meta[property='og:video']").unwrap();
-        let html = scraper::Html::parse_document(content.as_str());
-        let vid = html.select(&selector_video).next();
-        let img = html.select(&selector_img).next();
-        if vid.is_none() && img.is_none() {
-            return "0".to_string();
+    if source == UrlType::Fxtwitter {
+        let content = request.text().await.unwrap();
+
+        // Check if content has a meta property and return it in a blocking thread
+        url = spawn_blocking(move || {
+            let selector_img = scraper::Selector::parse("meta[property='twitter:image']").unwrap();
+            let selector_video = scraper::Selector::parse("meta[property='og:video']").unwrap();
+            let html = scraper::Html::parse_document(content.as_str());
+            let vid = html.select(&selector_video).next();
+            let img = html.select(&selector_img).next();
+            if vid.is_none() && img.is_none() {
+                return "0".to_string();
+            }
+
+            let url = if let Some(vid) = vid {
+                vid
+            } else {
+                img.unwrap()
+            };
+
+            url.value().attr("content").unwrap().to_string()
+        })
+        .await
+        .unwrap();
+
+        if url.contains(MOSAIC_URL) {
+            url.push_str(".jpg")
+        }
+    } else if source == UrlType::Vxtwitter {
+        let json = request.json::<APIFXResponse>().await.unwrap();
+
+        if json.media_urls.len() == 1 {
+            return json.media_urls[0].clone();
+        } else if json.media_urls.iter().any(|item| {
+            item.contains(".mp4") || item.contains(".webm") || item.contains(".gif")
+        }) {
+            return json.media_urls[0].clone();
         }
 
-        let url = if let Some(vid) = vid {
-            vid
-        } else {
-            img.unwrap()
-        };
+        // add all in vector to url
+        url = VXTWITTER_COMBINER_URL.to_string();
+        for media in json.media_urls {
+            url.push_str(media.as_str());
+            url.push_str(",");
+        }
+        url.pop();
 
-        url.value().attr("content").unwrap().to_string()
-    })
-    .await
-    .unwrap();
-
-    // Check if it's a mosaic
-    if url.contains(MOSAIC_URL) {
-        url.push_str(".jpg")
+        println!("URL: {}", url);
     }
     url
 }

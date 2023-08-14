@@ -34,7 +34,7 @@ impl EventHandler for Handler {
             return;
         }
 
-        let mut url = thorium::convert_url_lazy(msg.content.clone(), UrlType::Fxtwitter).await;
+        let mut url = thorium::convert_url_lazy(msg.content.clone(), UrlType::Vxtwitter).await;
 
         // Check if content has a meta property and return it in a blocking thread
         url = thorium::get_media_from_url(url).await;
