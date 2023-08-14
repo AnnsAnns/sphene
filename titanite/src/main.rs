@@ -6,6 +6,7 @@ use dotenv::dotenv;
 
 use reqwest::Url;
 use serenity::async_trait;
+use serenity::builder::CreateSelectMenuOption;
 use serenity::json::Value;
 use serenity::model::application::component::ButtonStyle;
 use serenity::model::application::interaction::Interaction;
@@ -22,6 +23,7 @@ use thorium::{UrlType};
 struct Handler {
     channel_id: ChannelId,
     user_id: UserId,
+    options: Vec<CreateSelectMenuOption>,
 }
 
 #[async_trait]
@@ -65,6 +67,15 @@ impl EventHandler for Handler {
                             b.custom_id("remove")
                                 .label("Remove")
                                 .style(ButtonStyle::Secondary)
+                        });
+                        f.create_select_menu(|s| {
+                            s.custom_id("select")
+                            .placeholder("Nothing selected")
+                            .min_values(1)
+                            .max_values(1)
+                            .options(|o| {
+                                o.set_options(self.options.clone())
+                            })
                         });
                         f.create_button(|b| {
                             b.0.insert("url", Value::from(msg.content.to_string()));
@@ -152,10 +163,18 @@ async fn main() {
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
+
+    let mut source_options: Vec<CreateSelectMenuOption> = Vec::new();
+    source_options.push(CreateSelectMenuOption::new("FXTwitter", "FXTwitter").default_selection(true).to_owned());
+    source_options.push(CreateSelectMenuOption::new("VXTwitter", "VXTwitter"));
+    source_options.push(CreateSelectMenuOption::new("FXTwitter (Non Download)", "FXTwitterNonDownload"));
+    source_options.push(CreateSelectMenuOption::new("VXTwitter (Non Download)", "VXTwitterNonDownload"));    
+
     let mut client = Client::builder(&token, intents)
         .event_handler(Handler {
             channel_id: ChannelId::from(channel_id.parse::<u64>().unwrap()),
             user_id: UserId::from(user_id.parse::<u64>().unwrap()),
+            options: source_options,
         })
         .await
         .expect("Err creating client");
