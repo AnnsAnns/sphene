@@ -28,7 +28,7 @@ impl EventHandler for Handler {
         let response = MessageBuilder::new()
             .mention(&msg.author)
             .push(": ")
-            .push(thorium::convert_url_lazy(msg.content.clone(), UrlType::Fxtwitter).await)
+            .push(thorium::convert_url_lazy(msg.content.clone(), UrlType::Vxtwitter).await)
             .build();
 
         if let Err(why) = msg
