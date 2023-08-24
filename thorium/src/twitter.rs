@@ -1,12 +1,13 @@
 use serde::Deserialize;
 use tokio::task::spawn_blocking;
 
+use crate::USER_AGENT;
+
 pub const TWITTER_URL: &str = "https://twitter.com/";
 pub const X_URL: &str = "https://x.com/";
 const FXTWITTER_URL: &str = "https://fxtwitter.com/";
 const VXTWITTER_URL: &str = "https://vxtwitter.com/";
 const MOSAIC_URL: &str = "https://mosaic.fxtwitter.com/";
-const USER_AGENT: &str = "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)";
 const VXTWITTER_COMBINER_URL: &str = "https://vxtwitter.com/rendercombined.jpg?imgs=";
 const VXTWITTER_API_URL: &str = "https://api.vxtwitter.com/";
 
@@ -78,8 +79,6 @@ pub async fn get_media_from_url(mut url: String) -> String {
         url = url.replace(VXTWITTER_URL, VXTWITTER_API_URL);
     }
 
-    println!("URL: {}", url);
-
     // We don't want to follow the redirect so we can get the metadata
     let client = reqwest::Client::builder()
         .user_agent(USER_AGENT)
@@ -126,9 +125,11 @@ pub async fn get_media_from_url(mut url: String) -> String {
 
         if json.media_urls.len() == 1 {
             return json.media_urls[0].clone();
-        } else if json.media_urls.iter().any(|item| {
-            item.contains(".mp4") || item.contains(".webm") || item.contains(".gif")
-        }) {
+        } else if json
+            .media_urls
+            .iter()
+            .any(|item| item.contains(".mp4") || item.contains(".webm") || item.contains(".gif"))
+        {
             return json.media_urls[0].clone();
         }
 
