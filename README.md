@@ -6,6 +6,10 @@
 
 Sphene is a discord bot that replaces twitter and bluesky links with various other sources that aim to fix the bug/broken embeds twitter and bluesky have.
 
+### Invite
+
+#### [CLICK HERE TO INVITE THE BOT](https://discord.com/api/oauth2/authorize?client_id=1134171949338214491&permissions=292057802816&scope=bot)
+
 ### Example
 
 ![](./sphene/.github/screenshot.png)
