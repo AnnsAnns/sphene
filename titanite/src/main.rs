@@ -6,7 +6,6 @@ use dotenv::dotenv;
 
 use reqwest::Url;
 use serenity::async_trait;
-use serenity::builder::CreateSelectMenuOption;
 use serenity::json::Value;
 use serenity::model::application::component::ButtonStyle;
 use serenity::model::application::interaction::Interaction;

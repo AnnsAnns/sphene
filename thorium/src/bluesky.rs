@@ -1,4 +1,3 @@
-use serde::Deserialize;
 use tokio::task::spawn_blocking;
 
 use crate::USER_AGENT;
@@ -38,7 +37,7 @@ impl UrlType {
 }
 
 pub fn is_bluesky_url(url: &str) -> bool {
-    UrlType::from_string(&url) == UrlType::Bluesky
+    UrlType::from_string(url) == UrlType::Bluesky
 }
 
 pub async fn convert_url(url: String, from: UrlType, to: UrlType) -> String {

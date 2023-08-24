@@ -148,24 +148,21 @@ impl EventHandler for Handler {
                     )
                     .await;
                 }
+            } else if bluesky_urltype == bluesky::UrlType::FixBluesky {
+                new_msg = bluesky::convert_url(
+                    new_msg,
+                    bluesky::UrlType::FixBluesky,
+                    bluesky::UrlType::Psky,
+                )
+                .await;
             } else {
-                if bluesky_urltype == bluesky::UrlType::FixBluesky {
-                    new_msg = bluesky::convert_url(
-                        new_msg,
-                        bluesky::UrlType::FixBluesky,
-                        bluesky::UrlType::Psky,
-                    )
-                    .await;
-                } else {
-                    new_msg = bluesky::convert_url(
-                        new_msg,
-                        bluesky::UrlType::Psky,
-                        bluesky::UrlType::FixBluesky,
-                    )
-                    .await;
-                }
+                new_msg = bluesky::convert_url(
+                    new_msg,
+                    bluesky::UrlType::Psky,
+                    bluesky::UrlType::FixBluesky,
+                )
+                .await;
             }
-            
 
             if let Err(why) = component
                 .edit_original_interaction_response(&ctx.http, |m| {

@@ -123,12 +123,10 @@ pub async fn get_media_from_url(mut url: String) -> String {
     } else if source == UrlType::Vxtwitter {
         let json = request.json::<APIFXResponse>().await.unwrap();
 
-        if json.media_urls.len() == 1 {
-            return json.media_urls[0].clone();
-        } else if json
-            .media_urls
-            .iter()
-            .any(|item| item.contains(".mp4") || item.contains(".webm") || item.contains(".gif"))
+        if json.media_urls.len() == 1
+            || json.media_urls.iter().any(|item| {
+                item.contains(".mp4") || item.contains(".webm") || item.contains(".gif")
+            })
         {
             return json.media_urls[0].clone();
         }
@@ -137,7 +135,7 @@ pub async fn get_media_from_url(mut url: String) -> String {
         url = VXTWITTER_COMBINER_URL.to_string();
         for media in json.media_urls {
             url.push_str(media.as_str());
-            url.push_str(",");
+            url.push(',');
         }
         url.pop();
 
