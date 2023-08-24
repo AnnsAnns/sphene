@@ -13,22 +13,22 @@ use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
-use thorium::UrlType;
-use thorium::convert_url;
+use thorium::twitter::UrlType;
+use thorium::twitter::convert_url;
 
 struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
-        if !thorium::is_twitter_url(msg.content.as_str()) {
+        if !thorium::twitter::is_twitter_url(msg.content.as_str()) {
             return;
         }
 
         let response = MessageBuilder::new()
             .mention(&msg.author)
             .push(": ")
-            .push(thorium::convert_url_lazy(msg.content.clone(), UrlType::Vxtwitter).await)
+            .push(thorium::twitter::convert_url_lazy(msg.content.clone(), UrlType::Vxtwitter).await)
             .build();
 
         if let Err(why) = msg
