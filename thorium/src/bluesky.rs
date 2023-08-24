@@ -37,6 +37,10 @@ impl UrlType {
     }
 }
 
+pub fn is_bluesky_url(url: &str) -> bool {
+    UrlType::from_string(&url) == UrlType::Bluesky
+}
+
 pub async fn convert_url(url: String, from: UrlType, to: UrlType) -> String {
     url.replace(from.as_str(), to.as_str())
 }

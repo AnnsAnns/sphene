@@ -13,22 +13,28 @@ use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
-use thorium::twitter::UrlType;
-use thorium::twitter::convert_url;
+use thorium::*;
 
 struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
-        if !thorium::twitter::is_twitter_url(msg.content.as_str()) {
+        let url: String;
+        let content = msg.content.clone();
+
+        if twitter::is_twitter_url(content.as_str()) {
+            url = twitter::convert_url_lazy(content, twitter::UrlType::Vxtwitter).await;
+        } else if bluesky::is_bluesky_url(content.as_str()) {
+            url = bluesky::convert_url_lazy(content, bluesky::UrlType::FixBluesky).await;
+        } else {
             return;
         }
 
         let response = MessageBuilder::new()
             .mention(&msg.author)
             .push(": ")
-            .push(thorium::twitter::convert_url_lazy(msg.content.clone(), UrlType::Vxtwitter).await)
+            .push(url)
             .build();
 
         if let Err(why) = msg
@@ -81,11 +87,11 @@ impl EventHandler for Handler {
 
         // Make the Discord API happy no matter what :)
         component
-        .create_interaction_response(&ctx.http, |r| {
-            r.kind(InteractionResponseType::DeferredUpdateMessage)
-        })
-        .await
-        .unwrap();
+            .create_interaction_response(&ctx.http, |r| {
+                r.kind(InteractionResponseType::DeferredUpdateMessage)
+            })
+            .await
+            .unwrap();
 
         let msg = &component.message;
         if !msg.author.bot {
@@ -99,11 +105,13 @@ impl EventHandler for Handler {
         }
 
         if custom_id == "remove" {
-            if let Err(why) = component.edit_original_interaction_response(&ctx.http, |m| {
-                m.content("💣 Deleted Message").allowed_mentions(|am| am.empty_parse());
-                m.components(|c| c)
-            })
-            .await
+            if let Err(why) = component
+                .edit_original_interaction_response(&ctx.http, |m| {
+                    m.content("💣 Deleted Message")
+                        .allowed_mentions(|am| am.empty_parse());
+                    m.components(|c| c)
+                })
+                .await
             {
                 println!("Error editing message: {:?}", why);
             }
@@ -112,23 +120,59 @@ impl EventHandler for Handler {
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
 
             // Delete the response message
-            if let Err(why) = component.delete_original_interaction_response(&ctx.http)
-            .await {
+            if let Err(why) = component
+                .delete_original_interaction_response(&ctx.http)
+                .await
+            {
                 println!("Error deleting message: {:?}", why);
             }
         } else {
             let mut new_msg = msg.content.clone();
 
-            if UrlType::from_string(&new_msg) == UrlType::Fxtwitter {
-                new_msg = convert_url(new_msg, UrlType::Fxtwitter, UrlType::Vxtwitter).await;
-            } else {
-                new_msg = convert_url(new_msg, UrlType::Vxtwitter, UrlType::Fxtwitter).await;
-            }
+            let twitter_urltype = twitter::UrlType::from_string(&new_msg);
+            let bluesky_urltype = bluesky::UrlType::from_string(&new_msg);
 
-            if let Err(why) = component.edit_original_interaction_response(&ctx.http, |m| {
-                m.content(new_msg).allowed_mentions(|am| am.empty_parse())
-            })
-            .await {
+            if twitter_urltype != twitter::UrlType::Unknown {
+                if twitter_urltype == twitter::UrlType::Fxtwitter {
+                    new_msg = twitter::convert_url(
+                        new_msg,
+                        twitter::UrlType::Fxtwitter,
+                        twitter::UrlType::Vxtwitter,
+                    )
+                    .await;
+                } else {
+                    new_msg = twitter::convert_url(
+                        new_msg,
+                        twitter::UrlType::Vxtwitter,
+                        twitter::UrlType::Fxtwitter,
+                    )
+                    .await;
+                }
+            } else {
+                if bluesky_urltype == bluesky::UrlType::FixBluesky {
+                    new_msg = bluesky::convert_url(
+                        new_msg,
+                        bluesky::UrlType::FixBluesky,
+                        bluesky::UrlType::Psky,
+                    )
+                    .await;
+                } else {
+                    new_msg = bluesky::convert_url(
+                        new_msg,
+                        bluesky::UrlType::Psky,
+                        bluesky::UrlType::FixBluesky,
+                    )
+                    .await;
+                }
+            }
+            
+
+            if let Err(why) = component
+                .edit_original_interaction_response(&ctx.http, |m| {
+                    m.content(new_msg).allowed_mentions(|am| am.empty_parse())
+                })
+                .await
+            {
                 println!("Error editing message: {:?}", why);
             }
         }
