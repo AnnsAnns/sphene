@@ -5,8 +5,8 @@ use crate::USER_AGENT;
 
 pub const TWITTER_URL: &str = "https://twitter.com/";
 pub const X_URL: &str = "https://x.com/";
-const FXTWITTER_URL: &str = "https://fxtwitter.com/";
-const VXTWITTER_URL: &str = "https://vxtwitter.com/";
+pub const FXTWITTER_URL: &str = "https://fxtwitter.com/";
+pub const VXTWITTER_URL: &str = "https://vxtwitter.com/";
 const MOSAIC_URL: &str = "https://mosaic.fxtwitter.com/";
 const VXTWITTER_COMBINER_URL: &str = "https://vxtwitter.com/rendercombined.jpg?imgs=";
 const VXTWITTER_API_URL: &str = "https://api.vxtwitter.com/";
@@ -74,6 +74,7 @@ struct APIFXResponse {
 
 pub async fn get_media_from_url(mut url: String) -> String {
     let source = UrlType::from_string(&url);
+    println!("Source: {:?}", url);
 
     if source == UrlType::Vxtwitter {
         url = url.replace(VXTWITTER_URL, VXTWITTER_API_URL);
