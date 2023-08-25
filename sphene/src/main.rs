@@ -4,6 +4,7 @@ extern crate dotenv;
 
 use dotenv::dotenv;
 
+use regex::Regex;
 use serenity::async_trait;
 use serenity::builder::CreateSelectMenuOption;
 use serenity::model::application::component::ButtonStyle;
@@ -15,7 +16,6 @@ use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
 use thorium::*;
-use regex::Regex;
 
 struct Handler {
     options_twitter: Vec<CreateSelectMenuOption>,
@@ -30,11 +30,14 @@ impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
         let url: String;
         let content = msg.content.clone();
+        let options: Vec<CreateSelectMenuOption>;
 
         if twitter::is_twitter_url(content.as_str()) {
             url = twitter::convert_url_lazy(content, twitter::UrlType::Vxtwitter).await;
+            options = self.options_twitter.clone();
         } else if bluesky::is_bluesky_url(content.as_str()) {
             url = bluesky::convert_url_lazy(content, bluesky::UrlType::FixBluesky).await;
+            options = self.options_bluesky.clone();
         } else {
             return;
         }
@@ -59,7 +62,7 @@ impl EventHandler for Handler {
                                 .placeholder("Nothing selected")
                                 .min_values(1)
                                 .max_values(1)
-                                .options(|o| o.set_options(self.options_twitter.clone()))
+                                .options(|o| o.set_options(options))
                         })
                     })
                 })
@@ -101,9 +104,10 @@ impl EventHandler for Handler {
             return;
         }
 
-        let user = component.user.id.to_string();
+        let user = &component.user.id.to_string();
+        println!("User: {:#?}", user);
         // Check whether user is correct
-        if !msg.content.contains(&user) {
+        if !msg.content.contains(user) {
             return;
         }
 
@@ -130,7 +134,13 @@ impl EventHandler for Handler {
                 println!("Error deleting message: {:?}", why);
             }
         } else {
-            let extracted_url = self.regex_pattern.find_iter(&msg.content).next().unwrap().as_str().to_string();
+            let extracted_url = self
+                .regex_pattern
+                .find_iter(&msg.content)
+                .next()
+                .unwrap()
+                .as_str()
+                .to_string();
             let mut new_msg: String = String::new();
 
             println!("Extracted URL: {:#?}", extracted_url);
@@ -152,7 +162,8 @@ impl EventHandler for Handler {
                     _ => twitter::UrlType::Unknown,
                 };
 
-                new_msg = twitter::convert_url_lazy(extracted_url.to_string(), twitter_urltype).await;
+                new_msg =
+                    twitter::convert_url_lazy(extracted_url.to_string(), twitter_urltype).await;
                 new_msg = format!(
                     "<{}> ({})",
                     new_msg,
@@ -160,7 +171,7 @@ impl EventHandler for Handler {
                 );
             }
 
-            new_msg = format!("{}: {}", msg.author, new_msg);
+            new_msg = format!("<@{}>: {}", user, new_msg);
 
             println!("New Message: {:#?}", new_msg);
 
