@@ -7,7 +7,7 @@ use dotenv::dotenv;
 use regex::Regex;
 use serenity::async_trait;
 use serenity::builder::CreateSelectMenuOption;
-use serenity::model::application::component::ButtonStyle;
+
 use serenity::model::application::interaction::Interaction;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::InteractionType;
@@ -23,7 +23,7 @@ struct Handler {
     regex_pattern: Regex,
 }
 
-const REGEX_URL_EXTRACTOR: &str = r#"\b(?:https?:\/\/|<)[^\s>]+(?:>|)\b"#;
+const REGEX_URL_EXTRACTOR: &str = r"\b(?:https?:\/\/|<)[^\s>]+(?:>|)\b";
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -143,13 +143,8 @@ impl EventHandler for Handler {
                 .to_string();
             let mut new_msg: String = String::new();
 
-            println!("Extracted URL: {:#?}", extracted_url);
-
-            let mut twitter_urltype = twitter::UrlType::from_string(&command);
-            let bluesky_urltype = bluesky::UrlType::from_string(&command);
-
-            println!("Twitter URL Type: {:#?}", twitter_urltype);
-            println!("Bluesky URL Type: {:#?}", bluesky_urltype);
+            let mut twitter_urltype = twitter::UrlType::from_string(command);
+            let bluesky_urltype = bluesky::UrlType::from_string(command);
 
             if twitter_urltype != twitter::UrlType::Unknown {
                 new_msg = twitter::convert_url_lazy(extracted_url, twitter_urltype).await;
@@ -172,8 +167,6 @@ impl EventHandler for Handler {
             }
 
             new_msg = format!("<@{}>: {}", user, new_msg);
-
-            println!("New Message: {:#?}", new_msg);
 
             if let Err(why) = component
                 .edit_original_interaction_response(&ctx.http, |m| {
@@ -202,46 +195,27 @@ async fn main() {
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
 
-    let mut twitter_options: Vec<CreateSelectMenuOption> = Vec::new();
-    twitter_options.push(
+    let twitter_options: Vec<CreateSelectMenuOption> = vec![
         CreateSelectMenuOption::new("Menu", "None")
             .default_selection(true)
             .to_owned(),
-    );
-    twitter_options.push(
         CreateSelectMenuOption::new("🔄️ Change to: VXTwitter", twitter::VXTWITTER_URL).to_owned(),
-    );
-    twitter_options.push(
         CreateSelectMenuOption::new("🔄️ Change to: FXTwitter", twitter::FXTWITTER_URL).to_owned(),
-    );
-    twitter_options
-        .push(CreateSelectMenuOption::new("🖼️ Image Only: VXTwitter", "direct_vx").to_owned());
-    twitter_options
-        .push(CreateSelectMenuOption::new("🖼️ Image Only: FXTwitter", "direct_fx").to_owned());
-    twitter_options.push(
+        CreateSelectMenuOption::new("🖼️ Image Only: VXTwitter", "direct_vx").to_owned(),
         CreateSelectMenuOption::new("🤨 Show original Twitter URL", twitter::TWITTER_URL)
             .to_owned(),
-    );
-    twitter_options
-        .push(CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned());
+        CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned(),
+    ];
 
-    let mut bluesky_options: Vec<CreateSelectMenuOption> = Vec::new();
-    bluesky_options.push(
+    let bluesky_options: Vec<CreateSelectMenuOption> = vec![
         CreateSelectMenuOption::new("Menu", "None")
             .default_selection(true)
             .to_owned(),
-    );
-    bluesky_options
-        .push(CreateSelectMenuOption::new("🔄️ Change to: Psky", bluesky::PSKY_URL).to_owned());
-    bluesky_options.push(
+        CreateSelectMenuOption::new("🔄️ Change to: Psky", bluesky::PSKY_URL).to_owned(),
         CreateSelectMenuOption::new("🔄️ Change to: FixBluesky", bluesky::FIXBLUESKY_URL).to_owned(),
-    );
-    bluesky_options.push(
-        CreateSelectMenuOption::new("🤨 Show original Bluesky URL", bluesky::BLUESKY_URL)
-            .to_owned(),
-    );
-    bluesky_options
-        .push(CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned());
+        CreateSelectMenuOption::new("☁️ Show original Bluesky URL", bluesky::BLUESKY_URL).to_owned(),
+        CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned(),
+    ];
 
     let regex_pattern = Regex::new(REGEX_URL_EXTRACTOR).unwrap();
 
