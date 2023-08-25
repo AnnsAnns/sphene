@@ -17,6 +17,8 @@ use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
 use thorium::*;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 struct Handler {
     options_twitter: Vec<CreateSelectMenuOption>,
     options_bluesky: Vec<CreateSelectMenuOption>,
@@ -97,6 +99,10 @@ impl EventHandler for Handler {
             .await
             .unwrap();
 
+        if command == "version" || command == "menu" {
+            return; 
+        }
+
         let msg = &component.message;
         if !msg.author.bot {
             return;
@@ -162,8 +168,11 @@ impl EventHandler for Handler {
                     twitter::get_media_from_url(new_msg.clone()).await
                 );
             } else if command == "direct_fxbsky" {
-                new_msg =
-                    bluesky::convert_url_lazy(extracted_url.to_string(), bluesky::UrlType::FixBluesky).await;
+                new_msg = bluesky::convert_url_lazy(
+                    extracted_url.to_string(),
+                    bluesky::UrlType::FixBluesky,
+                )
+                .await;
                 new_msg = format!(
                     "<{}> ({})",
                     new_msg,
@@ -200,28 +209,33 @@ async fn main() {
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
 
-    let twitter_options: Vec<CreateSelectMenuOption> = vec![
-        CreateSelectMenuOption::new("Menu", "None")
+    let default_option =
+        CreateSelectMenuOption::new("Menu", "menu")
             .default_selection(true)
-            .to_owned(),
+            .to_owned();
+    let remove_option = CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned();
+    let version_option = CreateSelectMenuOption::new(format!("🏳️‍⚧️ Running v{} of Sphene using Thorium", VERSION), "version").to_owned();
+
+    let twitter_options: Vec<CreateSelectMenuOption> = vec![
+        default_option.clone(),
         CreateSelectMenuOption::new("🔄️ Change to: VXTwitter", twitter::VXTWITTER_URL).to_owned(),
         CreateSelectMenuOption::new("🔄️ Change to: FXTwitter", twitter::FXTWITTER_URL).to_owned(),
         CreateSelectMenuOption::new("🖼️ Image Only: VXTwitter", "direct_vx").to_owned(),
         CreateSelectMenuOption::new("🖼️ Image Only: FXTwitter", "direct_fx").to_owned(),
         CreateSelectMenuOption::new("🤨 Show original Twitter URL", twitter::TWITTER_URL)
             .to_owned(),
-        CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned(),
+        remove_option.clone(),
+        version_option.clone(),
     ];
 
     let bluesky_options: Vec<CreateSelectMenuOption> = vec![
-        CreateSelectMenuOption::new("Menu", "None")
-            .default_selection(true)
-            .to_owned(),
+        default_option,
         CreateSelectMenuOption::new("🔄️ Change to: Psky", bluesky::PSKY_URL).to_owned(),
         CreateSelectMenuOption::new("🔄️ Change to: FixBluesky", bluesky::FIXBLUESKY_URL).to_owned(),
         CreateSelectMenuOption::new("🖼️ Image Only", "direct_fxbsky").to_owned(),
         CreateSelectMenuOption::new("☁️ Show original Bluesky URL", bluesky::BLUESKY_URL).to_owned(),
-        CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned(),
+        remove_option.clone(),
+        version_option.clone(),
     ];
 
     let regex_pattern = Regex::new(REGEX_URL_EXTRACTOR).unwrap();
