@@ -89,8 +89,6 @@ impl EventHandler for Handler {
         let component = interaction.as_message_component().unwrap().clone();
         let command = component.data.values.get(0).unwrap();
 
-        println!("Custom ID: {:#?}", command);
-
         // Make the Discord API happy no matter what :)
         component
             .create_interaction_response(&ctx.http, |r| {
@@ -105,7 +103,6 @@ impl EventHandler for Handler {
         }
 
         let user = &component.user.id.to_string();
-        println!("User: {:#?}", user);
         // Check whether user is correct
         if !msg.content.contains(user) {
             return;
@@ -164,6 +161,14 @@ impl EventHandler for Handler {
                     new_msg,
                     twitter::get_media_from_url(new_msg.clone()).await
                 );
+            } else if command == "direct_fxbsky" {
+                new_msg =
+                    bluesky::convert_url_lazy(extracted_url.to_string(), bluesky::UrlType::FixBluesky).await;
+                new_msg = format!(
+                    "<{}> ({})",
+                    new_msg,
+                    bluesky::get_media_from_url(new_msg.clone()).await
+                );
             }
 
             new_msg = format!("<@{}>: {}", user, new_msg);
@@ -202,6 +207,7 @@ async fn main() {
         CreateSelectMenuOption::new("🔄️ Change to: VXTwitter", twitter::VXTWITTER_URL).to_owned(),
         CreateSelectMenuOption::new("🔄️ Change to: FXTwitter", twitter::FXTWITTER_URL).to_owned(),
         CreateSelectMenuOption::new("🖼️ Image Only: VXTwitter", "direct_vx").to_owned(),
+        CreateSelectMenuOption::new("🖼️ Image Only: FXTwitter", "direct_fx").to_owned(),
         CreateSelectMenuOption::new("🤨 Show original Twitter URL", twitter::TWITTER_URL)
             .to_owned(),
         CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned(),
@@ -213,6 +219,7 @@ async fn main() {
             .to_owned(),
         CreateSelectMenuOption::new("🔄️ Change to: Psky", bluesky::PSKY_URL).to_owned(),
         CreateSelectMenuOption::new("🔄️ Change to: FixBluesky", bluesky::FIXBLUESKY_URL).to_owned(),
+        CreateSelectMenuOption::new("🖼️ Image Only", "direct_fxbsky").to_owned(),
         CreateSelectMenuOption::new("☁️ Show original Bluesky URL", bluesky::BLUESKY_URL).to_owned(),
         CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned(),
     ];

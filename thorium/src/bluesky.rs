@@ -73,7 +73,7 @@ pub async fn get_media_from_url(mut url: String) -> String {
 
     // Check if content has a meta property and return it in a blocking thread
     url = spawn_blocking(move || {
-        let selector_img = scraper::Selector::parse("meta[property='twitter:image']").unwrap();
+        let selector_img = scraper::Selector::parse("meta[property='og:image']").unwrap();
         let selector_video = scraper::Selector::parse("meta[property='og:video']").unwrap();
         let html = scraper::Html::parse_document(content.as_str());
         let vid = html.select(&selector_video).next();
