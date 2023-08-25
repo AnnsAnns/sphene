@@ -13,6 +13,7 @@ use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::InteractionType;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
+use serenity::model::prelude::Activity;
 use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
 use thorium::*;
@@ -100,7 +101,7 @@ impl EventHandler for Handler {
             .unwrap();
 
         if command == "version" || command == "menu" {
-            return; 
+            return;
         }
 
         let msg = &component.message;
@@ -193,7 +194,8 @@ impl EventHandler for Handler {
         }
     }
 
-    async fn ready(&self, _: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
+        ctx.set_activity(Activity::watching("out for embeds 🕵️")).await;
         println!("{} is connected!", ready.user.name);
     }
 }
@@ -209,12 +211,15 @@ async fn main() {
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
 
-    let default_option =
-        CreateSelectMenuOption::new("Menu", "menu")
-            .default_selection(true)
-            .to_owned();
+    let default_option = CreateSelectMenuOption::new("Menu", "menu")
+        .default_selection(true)
+        .to_owned();
     let remove_option = CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned();
-    let version_option = CreateSelectMenuOption::new(format!("🏳️‍⚧️ Running v{} of Sphene using Thorium", VERSION), "version").to_owned();
+    let version_option = CreateSelectMenuOption::new(
+        format!("🏳️‍⚧️ Running v{} of Sphene using Thorium", VERSION),
+        "version",
+    )
+    .to_owned();
 
     let twitter_options: Vec<CreateSelectMenuOption> = vec![
         default_option.clone(),
