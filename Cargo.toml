@@ -7,5 +7,5 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "6.0.0"
+version = "6.1.0"
 authors = ["AnnsAnn"]

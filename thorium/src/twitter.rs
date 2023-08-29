@@ -74,7 +74,6 @@ struct APIFXResponse {
 
 pub async fn get_media_from_url(mut url: String) -> String {
     let source = UrlType::from_string(&url);
-    println!("Source: {:?}", url);
 
     if source == UrlType::Vxtwitter {
         url = url.replace(VXTWITTER_URL, VXTWITTER_API_URL);
@@ -139,8 +138,6 @@ pub async fn get_media_from_url(mut url: String) -> String {
             url.push(',');
         }
         url.pop();
-
-        println!("URL: {}", url);
     }
     url
 }

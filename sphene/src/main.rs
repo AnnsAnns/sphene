@@ -91,28 +91,73 @@ impl EventHandler for Handler {
 
         let component = interaction.as_message_component().unwrap().clone();
         let command = component.data.values.get(0).unwrap();
-
-        // Make the Discord API happy no matter what :)
-        component
-            .create_interaction_response(&ctx.http, |r| {
-                r.kind(InteractionResponseType::DeferredUpdateMessage)
-            })
-            .await
-            .unwrap();
-
-        if command == "version" || command == "menu" {
-            return;
-        }
-
         let msg = &component.message;
+
         if !msg.author.bot {
             return;
         }
 
         let user = &component.user.id.to_string();
         // Check whether user is correct
-        if !msg.content.contains(user) {
+        if !msg.content.contains(user)
+            || command == "version"
+            || command == "download"
+            || command == "menu"
+        {
+            let content = if command == "version" {
+                "☁️ The Source Code can be found at: https://github.com/AnnsAnna/sphene".to_string()
+            } else if command == "menu" {
+                "🕺 https://www.youtube.com/watch?v=dQw4w9WgXcQ".to_string()
+            } else if command == "download" {
+                let extracted_url = self
+                    .regex_pattern
+                    .find_iter(&msg.content)
+                    .next()
+                    .unwrap()
+                    .as_str()
+                    .to_string();
+
+                let url = if twitter::UrlType::from_string(&extracted_url)
+                    != twitter::UrlType::Unknown
+                {
+                    twitter::get_media_from_url(
+                        twitter::convert_url_lazy(extracted_url, twitter::UrlType::Vxtwitter).await,
+                    )
+                    .await
+                } else {
+                    bluesky::get_media_from_url(
+                        bluesky::convert_url_lazy(extracted_url, bluesky::UrlType::FixBluesky)
+                            .await,
+                    )
+                    .await
+                };
+
+                if url != "0" {
+                    format!("⏬ Your Download URL is: <{}>", url)
+                } else {
+                    "⚠️ No Download URL found!".to_string()
+                }
+            } else {
+                "⚠️ You are not the author of this message!".to_string()
+            };
+
+            component
+                .create_interaction_response(&ctx.http, |r| {
+                    r.kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|m| m.content(content).ephemeral(true))
+                })
+                .await
+                .unwrap();
+
             return;
+        } else {
+            // Make the Discord API happy :)
+            component
+                .create_interaction_response(&ctx.http, |r| {
+                    r.kind(InteractionResponseType::DeferredUpdateMessage)
+                })
+                .await
+                .unwrap();
         }
 
         if command == "remove" {
@@ -195,7 +240,8 @@ impl EventHandler for Handler {
     }
 
     async fn ready(&self, ctx: Context, ready: Ready) {
-        ctx.set_activity(Activity::watching("out for embeds 🕵️")).await;
+        ctx.set_activity(Activity::watching("out for embeds 🕵️"))
+            .await;
         println!("{} is connected!", ready.user.name);
     }
 }
@@ -220,27 +266,30 @@ async fn main() {
         "version",
     )
     .to_owned();
+    let download_option = CreateSelectMenuOption::new("⏬ Download Media", "download").to_owned();
 
     let twitter_options: Vec<CreateSelectMenuOption> = vec![
-        default_option.clone(),
+        download_option.clone(),
         CreateSelectMenuOption::new("🔄️ Change to: VXTwitter", twitter::VXTWITTER_URL).to_owned(),
         CreateSelectMenuOption::new("🔄️ Change to: FXTwitter", twitter::FXTWITTER_URL).to_owned(),
-        CreateSelectMenuOption::new("🖼️ Image Only: VXTwitter", "direct_vx").to_owned(),
-        CreateSelectMenuOption::new("🖼️ Image Only: FXTwitter", "direct_fx").to_owned(),
+        CreateSelectMenuOption::new("🖼️ Media Only: VXTwitter", "direct_vx").to_owned(),
+        CreateSelectMenuOption::new("🖼️ Media Only: FXTwitter", "direct_fx").to_owned(),
         CreateSelectMenuOption::new("🤨 Show original Twitter URL", twitter::TWITTER_URL)
             .to_owned(),
         remove_option.clone(),
         version_option.clone(),
+        default_option.clone(),
     ];
 
     let bluesky_options: Vec<CreateSelectMenuOption> = vec![
-        default_option,
+        download_option,
         CreateSelectMenuOption::new("🔄️ Change to: Psky", bluesky::PSKY_URL).to_owned(),
         CreateSelectMenuOption::new("🔄️ Change to: FixBluesky", bluesky::FIXBLUESKY_URL).to_owned(),
-        CreateSelectMenuOption::new("🖼️ Image Only", "direct_fxbsky").to_owned(),
+        CreateSelectMenuOption::new("🖼️ Media Only", "direct_fxbsky").to_owned(),
         CreateSelectMenuOption::new("☁️ Show original Bluesky URL", bluesky::BLUESKY_URL).to_owned(),
-        remove_option.clone(),
-        version_option.clone(),
+        remove_option,
+        version_option,
+        default_option,
     ];
 
     let regex_pattern = Regex::new(REGEX_URL_EXTRACTOR).unwrap();
