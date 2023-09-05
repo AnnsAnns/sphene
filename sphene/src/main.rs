@@ -49,7 +49,7 @@ impl EventHandler for Handler {
 
             let mut ref_author = ref_message
                 .content
-                .split_once(":")
+                .split_once(':')
                 .unwrap()
                 .0
                 .split_at(2)
