@@ -57,12 +57,16 @@ impl EventHandler for Handler {
                 .to_string();
             ref_author.pop();
 
-            println!("ref_author: {}", &ref_author);
             let author = &context
                 .http
                 .get_user(ref_author.parse::<u64>().unwrap())
                 .await
                 .unwrap();
+
+            // Ignore people that reply to their own messages
+            if author.id == msg.author.id {
+                return;
+            }
 
             let msg_url = &msg.link_ensured(&context.http).await;
             let author_nickname = &msg
@@ -73,7 +77,7 @@ impl EventHandler for Handler {
             author
                 .dm(&context.http, |m| {
                     m.content(format!(
-                        "🔗 Your Message has been referenced by <@{}> ({}) in: {}",
+                        "🔗 Your message has been referenced by <@{}> ({}) in: {}",
                         &msg.author.id, &author_nickname, &msg_url
                     ))
                 })
