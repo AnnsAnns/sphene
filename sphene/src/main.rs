@@ -41,6 +41,46 @@ impl EventHandler for Handler {
         } else if bluesky::is_bluesky_url(content.as_str()) {
             url = bluesky::convert_url_lazy(content, bluesky::UrlType::FixBluesky).await;
             options = self.options_bluesky.clone();
+        } else if msg.referenced_message.is_some() {
+            let ref_message = &msg.referenced_message.clone().unwrap();
+            if ref_message.author.id != context.http.get_current_user().await.unwrap().id {
+                return;
+            };
+
+            let mut ref_author = ref_message
+                .content
+                .split_once(":")
+                .unwrap()
+                .0
+                .split_at(2)
+                .1
+                .to_string();
+            ref_author.pop();
+
+            println!("ref_author: {}", &ref_author);
+            let author = &context
+                .http
+                .get_user(ref_author.parse::<u64>().unwrap())
+                .await
+                .unwrap();
+
+            let msg_url = &msg.link_ensured(&context.http).await;
+            let author_nickname = &msg
+                .author
+                .nick_in(&context.http, &msg.guild_id.unwrap())
+                .await
+                .unwrap_or(msg.author.name.clone());
+            author
+                .dm(&context.http, |m| {
+                    m.content(format!(
+                        "🔗 Your Message has been referenced by <@{}> ({}) in: {}",
+                        &msg.author.id, &author_nickname, &msg_url
+                    ))
+                })
+                .await
+                .unwrap();
+
+            return;
         } else {
             return;
         }
