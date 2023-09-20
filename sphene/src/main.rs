@@ -36,7 +36,9 @@ impl EventHandler for Handler {
         let options: Vec<CreateSelectMenuOption>;
 
         if twitter::is_twitter_url(content.as_str()) {
-            url = twitter::convert_url_lazy(content, twitter::UrlType::Vxtwitter).await;
+            url = twitter::remove_tracking(
+                twitter::convert_url_lazy(content, twitter::UrlType::Vxtwitter).await,
+            );
             options = self.options_twitter.clone();
         } else if bluesky::is_bluesky_url(content.as_str()) {
             url = bluesky::convert_url_lazy(content, bluesky::UrlType::FixBluesky).await;

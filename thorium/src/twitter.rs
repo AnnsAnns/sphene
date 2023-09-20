@@ -49,6 +49,29 @@ impl UrlType {
     }
 }
 
+pub fn remove_tracking(url: String) -> String {
+    let mut new_url = String::new();
+    for word in url.split_whitespace() {
+        if word.contains('?') && word.contains('=') {
+            let url: &str;
+            if !word.starts_with("https://") && word.contains("https://") {
+                let split = word.split_once("https://").unwrap();
+                url = split.1;
+                new_url.push_str(split.0);
+                new_url.push(' ');
+                new_url.push_str("https://");
+            } else {
+                url = word.split_once('?').unwrap().0;
+            }
+            new_url.push_str(url);
+        } else {
+            new_url.push_str(word);
+        }
+        new_url.push(' ');
+    }
+    new_url.trim().to_string()
+}
+
 pub async fn convert_url(url: String, from: UrlType, to: UrlType) -> String {
     url.replace(from.as_str(), to.as_str())
 }
