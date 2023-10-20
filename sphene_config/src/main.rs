@@ -16,13 +16,13 @@ pub enum Choices {
     Tiktok,
 }
 
-#[derive(Debug, poise::ChoiceParameter)]
+#[derive(Debug, Clone, poise::ChoiceParameter)]
 pub enum EnableOrDisable {
     Enable = 1,
     Disable = 0,
 }
 
-fn parse_choice(choice: Choices, mut server: Server, change_to: bool) -> Server {
+fn parse_choice(choice: &Choices, mut server: Server, change_to: bool) -> Server {
     match choice {
         Choices::Twitter => {
             server.twitter = change_to;
@@ -54,9 +54,9 @@ async fn change(
         ctx.author().id.0
     };
     let mut server = db.get_server(id, true);
-    server = parse_choice(choice, server, enable_or_disable as u8 == 1);
+    server = parse_choice(&choice, server, enable_or_disable.clone() as u8 == 1);
     db.update_server(server);
-    ctx.say("Changed 👍").await?;
+    ctx.say(format!("Changed {:#?} to {:#?}d 👍", choice, enable_or_disable)).await?;
     Ok(())
 }
 
