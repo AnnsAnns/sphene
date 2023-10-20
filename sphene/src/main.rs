@@ -2,6 +2,7 @@ use std::env;
 
 extern crate dotenv;
 
+use db::DBConn;
 use dotenv::dotenv;
 
 use regex::Regex;
@@ -18,12 +19,15 @@ use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
 use thorium::*;
 
+mod db;
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 struct Handler {
     options_twitter: Vec<CreateSelectMenuOption>,
     options_bluesky: Vec<CreateSelectMenuOption>,
     regex_pattern: Regex,
+    dbconn: Mutex<db::DBConn>
 }
 
 const REGEX_URL_EXTRACTOR: &str = r"\b(?:https?:\/\/|<)[^\s>]+(?:>|)\b";
@@ -35,12 +39,14 @@ impl EventHandler for Handler {
         let content = msg.content.clone();
         let options: Vec<CreateSelectMenuOption>;
 
-        if twitter::is_twitter_url(content.as_str()) {
+        let server_settings = self.dbconn.lock().await.get_server(msg.guild_id.unwrap().0);
+
+        if twitter::is_twitter_url(content.as_str()) && server_settings.twitter {
             url = twitter::remove_tracking(
                 twitter::convert_url_lazy(content, twitter::UrlType::Vxtwitter).await,
             );
             options = self.options_twitter.clone();
-        } else if bluesky::is_bluesky_url(content.as_str()) {
+        } else if bluesky::is_bluesky_url(content.as_str()) && server_settings.bluesky {
             url = bluesky::convert_url_lazy(content, bluesky::UrlType::FixBluesky).await;
             options = self.options_bluesky.clone();
         } else if msg.referenced_message.is_some() {
@@ -340,11 +346,14 @@ async fn main() {
 
     let regex_pattern = Regex::new(REGEX_URL_EXTRACTOR).unwrap();
 
+    let dbconn = Mutex::new(DBConn::new().unwrap());
+
     let mut client = Client::builder(&token, intents)
         .event_handler(Handler {
             options_twitter: twitter_options,
             options_bluesky: bluesky_options,
             regex_pattern,
+            dbconn
         })
         .await
         .expect("Err creating client");
