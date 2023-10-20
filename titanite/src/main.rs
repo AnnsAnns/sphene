@@ -81,11 +81,14 @@ impl EventHandler for Handler {
         {
             return;
         }
-        
-        let mut url : String = "0".to_string();
-        
+
+        let url: String;
+
         if thorium::twitter::is_twitter_url(msg.content.as_str()) {
-            url = thorium::twitter::get_media_from_url(thorium::twitter::convert_url_lazy(msg.content.clone(), UrlType::Vxtwitter).await).await;
+            url = thorium::twitter::get_media_from_url(
+                thorium::twitter::convert_url_lazy(msg.content.clone(), UrlType::Vxtwitter).await,
+            )
+            .await;
         } else if thorium::bluesky::is_bluesky_url(msg.content.as_str()) {
             url = thorium::bluesky::get_media_from_url(msg.content.clone()).await;
         } else {
@@ -98,7 +101,14 @@ impl EventHandler for Handler {
             msg.channel_id
         };
 
-        process_tweet(url, channel_id, msg.clone(), context.clone(), self.channel_id).await;
+        process_tweet(
+            url,
+            channel_id,
+            msg.clone(),
+            context.clone(),
+            self.channel_id,
+        )
+        .await;
 
         if !msg.is_private() {
             // Delete message
@@ -167,7 +177,8 @@ impl EventHandler for Handler {
                 msg.clone(),
                 ctx,
                 component.channel_id,
-            ).await;
+            )
+            .await;
         }
     }
 

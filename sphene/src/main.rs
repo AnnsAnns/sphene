@@ -16,8 +16,8 @@ use serenity::model::gateway::Ready;
 use serenity::model::prelude::Activity;
 use serenity::prelude::*;
 use serenity::utils::MessageBuilder;
-use thorium::*;
 use thorium::db::DBConn;
+use thorium::*;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -25,7 +25,7 @@ struct Handler {
     options_twitter: Vec<CreateSelectMenuOption>,
     options_bluesky: Vec<CreateSelectMenuOption>,
     regex_pattern: Regex,
-    dbconn: Mutex<db::DBConn>
+    dbconn: Mutex<db::DBConn>,
 }
 
 const REGEX_URL_EXTRACTOR: &str = r"\b(?:https?:\/\/|<)[^\s>]+(?:>|)\b";
@@ -43,12 +43,16 @@ impl EventHandler for Handler {
             msg.author.id.0
         };
 
-        if twitter::is_twitter_url(content.as_str()) && self.dbconn.lock().await.get_server(id, false).twitter {
+        if twitter::is_twitter_url(content.as_str())
+            && self.dbconn.lock().await.get_server(id, false).twitter
+        {
             url = twitter::remove_tracking(
                 twitter::convert_url_lazy(content, twitter::UrlType::Vxtwitter).await,
             );
             options = self.options_twitter.clone();
-        } else if bluesky::is_bluesky_url(content.as_str()) && self.dbconn.lock().await.get_server(id, false).bluesky {
+        } else if bluesky::is_bluesky_url(content.as_str())
+            && self.dbconn.lock().await.get_server(id, false).bluesky
+        {
             url = bluesky::convert_url_lazy(content, bluesky::UrlType::FixBluesky).await;
             options = self.options_bluesky.clone();
         } else if msg.referenced_message.is_some() {
@@ -355,7 +359,7 @@ async fn main() {
             options_twitter: twitter_options,
             options_bluesky: bluesky_options,
             regex_pattern,
-            dbconn
+            dbconn,
         })
         .await
         .expect("Err creating client");
