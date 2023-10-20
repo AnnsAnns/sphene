@@ -77,15 +77,20 @@ impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
         if msg.author.id != self.user_id
             || msg.author.bot
-            || !thorium::twitter::is_twitter_url(msg.content.as_str())
+            || !thorium::bluesky::is_bluesky_url(msg.content.as_str())
         {
             return;
         }
-
-        let mut url = thorium::twitter::convert_url_lazy(msg.content.clone(), UrlType::Vxtwitter).await;
-
-        // Check if content has a meta property and return it in a blocking thread
-        url = thorium::twitter::get_media_from_url(url).await;
+        
+        let mut url : String = "0".to_string();
+        
+        if thorium::twitter::is_twitter_url(msg.content.as_str()) {
+            url = thorium::twitter::get_media_from_url(thorium::twitter::convert_url_lazy(msg.content.clone(), UrlType::Vxtwitter).await).await;
+        } else if thorium::bluesky::is_bluesky_url(msg.content.as_str()) {
+            url = thorium::bluesky::get_media_from_url(msg.content.clone()).await;
+        } else {
+            return;
+        }
 
         let channel_id = if msg.is_private() {
             self.channel_id
