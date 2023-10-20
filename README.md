@@ -14,6 +14,10 @@ Sphene is a discord bot that replaces twitter and bluesky links with various oth
 
 ![](./sphene/.github/screenshot.png)
 
+## [Sphene Config](./sphene_config/README.md)
+
+Sphene Config is a shard of the Sphene discord bot that allows you to configure the bot via slash commands.
+
 ## [Titanite](./titanite/README.md)
 
 Titanite is (loosely) based on [Sphene](https://github.com/AnnsAnna/sphene) with completely different goals and vastly different features. 

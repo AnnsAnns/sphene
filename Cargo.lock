@@ -1678,7 +1678,6 @@ version = "6.3.0"
 dependencies = [
  "dotenv",
  "poise",
- "rusqlite",
  "thorium",
  "tokio",
 ]

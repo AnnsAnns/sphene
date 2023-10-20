@@ -9,6 +9,5 @@ authors.workspace = true
 [dependencies]
 dotenv = "0.15.0"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
-rusqlite = { version = "0.29.0", features = ["bundled"] }
 poise = "0.5.6"
 thorium = { path = "../thorium" }
