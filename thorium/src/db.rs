@@ -27,7 +27,7 @@ impl DBConn {
         Ok(Self { conn })
     }
 
-    fn create_new(&self) {
+    pub fn create_new(&self) {
         self.conn
             .execute(
                 "create table if not exists server (
@@ -42,7 +42,7 @@ impl DBConn {
             .unwrap();
     }
 
-    pub fn get_server(&self, id: u64) -> Server {
+    pub fn get_server(&self, id: u64, init: bool) -> Server {
         let mut stmt = self
             .conn
             .prepare("SELECT * FROM server WHERE id = ?1")
@@ -62,21 +62,24 @@ impl DBConn {
         if let Some(server) = server_iter.next() {
             server.unwrap()
         } else {
-            let mut insert_statement = self.conn.prepare("INSERT INTO server (id, twitter, bluesky, instagram, tiktok) VALUES (?1, ?2, ?3, ?4, ?5)").unwrap();
-            insert_statement
-                .execute(rusqlite::params![
-                    id,
-                    STANDARD_SERVER.twitter,
-                    STANDARD_SERVER.bluesky,
-                    STANDARD_SERVER.instagram,
-                    STANDARD_SERVER.tiktok
-                ])
-                .unwrap();
+            if init {
+                let mut insert_statement = self.conn.prepare("INSERT INTO server (id, twitter, bluesky, instagram, tiktok) VALUES (?1, ?2, ?3, ?4, ?5)").unwrap();
+                insert_statement
+                    .execute(rusqlite::params![
+                        id,
+                        STANDARD_SERVER.twitter,
+                        STANDARD_SERVER.bluesky,
+                        STANDARD_SERVER.instagram,
+                        STANDARD_SERVER.tiktok
+                    ])
+                    .unwrap();
+            }
             STANDARD_SERVER
         }
     }
 
     pub fn update_server(&self, server: Server) {
+        print!("{:?}", server);
         let mut stmt = self
             .conn
             .prepare("UPDATE server SET twitter = ?1, bluesky = ?2, instagram = ?3, tiktok = ?4 WHERE id = ?5")
