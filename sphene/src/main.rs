@@ -24,6 +24,8 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 struct Handler {
     options_twitter: Vec<CreateSelectMenuOption>,
     options_bluesky: Vec<CreateSelectMenuOption>,
+    options_instagram: Vec<CreateSelectMenuOption>,
+    options_tiktok: Vec<CreateSelectMenuOption>,
     regex_pattern: Regex,
     dbconn: Mutex<db::DBConn>,
 }
@@ -55,6 +57,16 @@ impl EventHandler for Handler {
         {
             url = bluesky::convert_url_lazy(content, bluesky::UrlType::FixBluesky).await;
             options = self.options_bluesky.clone();
+        } else if tiktok::is_tiktok_url(content.as_str())
+            && self.dbconn.lock().await.get_server(id, false).tiktok
+        {
+            url = tiktok::convert_url_lazy(content, tiktok::UrlType::VXTikTok).await;
+            options = self.options_tiktok.clone();
+        } else if instagram::is_instagram_url(content.as_str())
+            && self.dbconn.lock().await.get_server(id, false).instagram
+        {
+            url = instagram::convert_url_lazy(content, instagram::UrlType::DDInstagram).await;
+            options = self.options_instagram.clone();
         } else if msg.referenced_message.is_some() {
             let ref_message = &msg.referenced_message.clone().unwrap();
             if ref_message.author.id != context.http.get_current_user().await.unwrap().id {
@@ -161,11 +173,14 @@ impl EventHandler for Handler {
             || command == "version"
             || command == "download"
             || command == "menu"
+            || command == "disable"
         {
             let content = if command == "version" {
                 "☁️ The Source Code can be found at: https://github.com/AnnsAnna/sphene".to_string()
             } else if command == "menu" {
                 "🕺 https://www.youtube.com/watch?v=dQw4w9WgXcQ".to_string()
+            } else if command == "disable" {
+                "⛔ Disable this bot for this site using the /change slash command!".to_string()
             } else if command == "download" {
                 let extracted_url = self
                     .regex_pattern
@@ -180,6 +195,11 @@ impl EventHandler for Handler {
                 {
                     twitter::get_media_from_url(
                         twitter::convert_url_lazy(extracted_url, twitter::UrlType::Vxtwitter).await,
+                    )
+                    .await
+                } else if tiktok::UrlType::from_string(&extracted_url) != tiktok::UrlType::Unknown {
+                    tiktok::get_media_from_url(
+                        tiktok::convert_url_lazy(extracted_url, tiktok::UrlType::VXTikTok).await,
                     )
                     .await
                 } else {
@@ -252,11 +272,17 @@ impl EventHandler for Handler {
 
             let mut twitter_urltype = twitter::UrlType::from_string(command);
             let bluesky_urltype = bluesky::UrlType::from_string(command);
+            let instagram_urltype = instagram::UrlType::from_string(command);
+            let tiktok_urltype = tiktok::UrlType::from_string(command);
 
             if twitter_urltype != twitter::UrlType::Unknown {
                 new_msg = twitter::convert_url_lazy(extracted_url, twitter_urltype).await;
             } else if bluesky_urltype != bluesky::UrlType::Unknown {
                 new_msg = bluesky::convert_url_lazy(extracted_url, bluesky_urltype).await;
+            } else if instagram_urltype != instagram::UrlType::Unknown {
+                new_msg = instagram::convert_url_lazy(extracted_url, instagram_urltype).await;
+            } else if tiktok_urltype != tiktok::UrlType::Unknown {
+                new_msg = tiktok::convert_url_lazy(extracted_url, tiktok_urltype).await;
             } else if command == "direct_vx" || command == "direct_fx" {
                 twitter_urltype = match command.as_str() {
                     "direct_vx" => twitter::UrlType::Vxtwitter,
@@ -281,6 +307,15 @@ impl EventHandler for Handler {
                     "<{}> ({})",
                     new_msg,
                     bluesky::get_media_from_url(new_msg.clone()).await
+                );
+            } else if command == "direct_vxtiktok" {
+                new_msg =
+                    tiktok::convert_url_lazy(extracted_url.to_string(), tiktok::UrlType::VXTikTok)
+                        .await;
+                new_msg = format!(
+                    "<{}> ({})",
+                    new_msg,
+                    tiktok::get_media_from_url(new_msg.clone()).await
                 );
             }
 
@@ -325,6 +360,9 @@ async fn main() {
     )
     .to_owned();
     let download_option = CreateSelectMenuOption::new("⏬ Download Media", "download").to_owned();
+    let disable_option =
+        CreateSelectMenuOption::new("⛔ Use /change to disable bot for this site!", "disable")
+            .to_owned();
 
     let twitter_options: Vec<CreateSelectMenuOption> = vec![
         download_option.clone(),
@@ -336,18 +374,43 @@ async fn main() {
             .to_owned(),
         remove_option.clone(),
         version_option.clone(),
+        disable_option.clone(),
         default_option.clone(),
     ];
 
     let bluesky_options: Vec<CreateSelectMenuOption> = vec![
-        download_option,
+        download_option.clone(),
         CreateSelectMenuOption::new("🔄️ Change to: Psky", bluesky::PSKY_URL).to_owned(),
         CreateSelectMenuOption::new("🔄️ Change to: FixBluesky", bluesky::FIXBLUESKY_URL).to_owned(),
         CreateSelectMenuOption::new("🖼️ Media Only", "direct_fxbsky").to_owned(),
         CreateSelectMenuOption::new("☁️ Show original Bluesky URL", bluesky::BLUESKY_URL).to_owned(),
-        remove_option,
-        version_option,
-        default_option,
+        remove_option.clone(),
+        version_option.clone(),
+        disable_option.clone(),
+        default_option.clone(),
+    ];
+
+    let instagram_options: Vec<CreateSelectMenuOption> = vec![
+        CreateSelectMenuOption::new("🔄️ Change to: DDInstagram", instagram::DDINSTAGRAM_URL)
+            .to_owned(),
+        CreateSelectMenuOption::new("📸 Show original Instagram URL", instagram::INSTAGRAM_URL)
+            .to_owned(),
+        remove_option.clone(),
+        version_option.clone(),
+        disable_option.clone(),
+        default_option.clone(),
+    ];
+
+    let tiktok_options: Vec<CreateSelectMenuOption> = vec![
+        download_option.clone(),
+        CreateSelectMenuOption::new("🔄️ Change to: VXTikTok", tiktok::VXTIKTOK_URL).to_owned(),
+        CreateSelectMenuOption::new("🖼️ Media Only", "direct_vxtiktok").to_owned(),
+        CreateSelectMenuOption::new("📸 Show original Instagram URL", tiktok::TIKTOK_URL)
+            .to_owned(),
+        remove_option.clone(),
+        version_option.clone(),
+        disable_option.clone(),
+        default_option.clone(),
     ];
 
     let regex_pattern = Regex::new(REGEX_URL_EXTRACTOR).unwrap();
@@ -358,6 +421,8 @@ async fn main() {
         .event_handler(Handler {
             options_twitter: twitter_options,
             options_bluesky: bluesky_options,
+            options_instagram: instagram_options,
+            options_tiktok: tiktok_options,
             regex_pattern,
             dbconn,
         })

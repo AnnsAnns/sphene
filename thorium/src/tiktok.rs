@@ -1,39 +1,34 @@
-pub const BLUESKY_URL: &str = "https://bsky.app/";
-pub const PSKY_URL: &str = "https://psky.app/";
-pub const FIXBLUESKY_URL: &str = "https://bsyy.app/";
+pub const TIKTOK_URL: &str = "https://tiktok.com/";
+pub const VXTIKTOK_URL: &str = "https://vxtiktok.com/";
 
 #[derive(Debug, PartialEq)]
 pub enum UrlType {
-    Bluesky,
-    Psky,
-    FixBluesky,
-    Unknown,
+    TikTok,
+    VXTikTok,
+    Unknown
 }
 
 impl UrlType {
     pub fn as_str(&self) -> &'static str {
         match *self {
-            UrlType::Bluesky => BLUESKY_URL,
-            UrlType::Psky => PSKY_URL,
-            UrlType::FixBluesky => FIXBLUESKY_URL,
+            UrlType::TikTok => TIKTOK_URL,
+            UrlType::VXTikTok => VXTIKTOK_URL,
             UrlType::Unknown => "",
         }
     }
 
     pub fn from_string(url: &str) -> UrlType {
-        if url.contains(BLUESKY_URL) {
-            return UrlType::Bluesky;
-        } else if url.contains(PSKY_URL) {
-            return UrlType::Psky;
-        } else if url.contains(FIXBLUESKY_URL) {
-            return UrlType::FixBluesky;
+        if url.contains(TIKTOK_URL) {
+            return UrlType::TikTok;
+        } else if url.contains(VXTIKTOK_URL) {
+            return UrlType::VXTikTok;
         }
         UrlType::Unknown
     }
 }
 
-pub fn is_bluesky_url(url: &str) -> bool {
-    UrlType::from_string(url) == UrlType::Bluesky
+pub fn is_tiktok_url(url: &str) -> bool {
+    UrlType::from_string(url) == UrlType::TikTok
 }
 
 pub async fn convert_url(url: String, from: UrlType, to: UrlType) -> String {
@@ -50,6 +45,6 @@ pub async fn get_url_type(url: String) -> UrlType {
 }
 
 pub async fn get_media_from_url(mut url: String) -> String {
-    url = convert_url_lazy(url, UrlType::FixBluesky).await;
+    url = convert_url_lazy(url, UrlType::VXTikTok).await;
     crate::get_media(url).await
 }

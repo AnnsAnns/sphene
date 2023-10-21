@@ -1,39 +1,35 @@
-pub const BLUESKY_URL: &str = "https://bsky.app/";
-pub const PSKY_URL: &str = "https://psky.app/";
-pub const FIXBLUESKY_URL: &str = "https://bsyy.app/";
+pub const INSTAGRAM_URL: &str = "https://www.instagram.com/";
+pub const INSTAGRAM_NWWW_URL: &str = "https://www.instagram.com/";
+pub const DDINSTAGRAM_URL: &str = "https://www.ddinstagram.com/";
 
 #[derive(Debug, PartialEq)]
 pub enum UrlType {
-    Bluesky,
-    Psky,
-    FixBluesky,
-    Unknown,
+    Instagram,
+    DDInstagram,
+    Unknown
 }
 
 impl UrlType {
     pub fn as_str(&self) -> &'static str {
         match *self {
-            UrlType::Bluesky => BLUESKY_URL,
-            UrlType::Psky => PSKY_URL,
-            UrlType::FixBluesky => FIXBLUESKY_URL,
+            UrlType::Instagram => INSTAGRAM_URL,
+            UrlType::DDInstagram => DDINSTAGRAM_URL,
             UrlType::Unknown => "",
         }
     }
 
     pub fn from_string(url: &str) -> UrlType {
-        if url.contains(BLUESKY_URL) {
-            return UrlType::Bluesky;
-        } else if url.contains(PSKY_URL) {
-            return UrlType::Psky;
-        } else if url.contains(FIXBLUESKY_URL) {
-            return UrlType::FixBluesky;
+        if url.contains(INSTAGRAM_URL) || url.contains(INSTAGRAM_NWWW_URL) {
+            return UrlType::Instagram;
+        } else if url.contains(DDINSTAGRAM_URL) {
+            return UrlType::DDInstagram;
         }
         UrlType::Unknown
     }
 }
 
-pub fn is_bluesky_url(url: &str) -> bool {
-    UrlType::from_string(url) == UrlType::Bluesky
+pub fn is_instagram_url(url: &str) -> bool {
+    UrlType::from_string(url) == UrlType::Instagram
 }
 
 pub async fn convert_url(url: String, from: UrlType, to: UrlType) -> String {
@@ -50,6 +46,6 @@ pub async fn get_url_type(url: String) -> UrlType {
 }
 
 pub async fn get_media_from_url(mut url: String) -> String {
-    url = convert_url_lazy(url, UrlType::FixBluesky).await;
+    url = convert_url_lazy(url, UrlType::DDInstagram).await;
     crate::get_media(url).await
 }
