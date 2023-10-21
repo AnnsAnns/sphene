@@ -1,6 +1,6 @@
 # Sphene Family of Projects
 
-### This is a monorepo for the 3 Sphene (CaTiSiO5) projects.
+### This is a monorepo for the 4 Sphene (CaTiSiO5) projects.
 
 ## [Sphene](./sphene/README.md)
 
