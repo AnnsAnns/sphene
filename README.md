@@ -4,7 +4,7 @@
 
 ## [Sphene](./sphene/README.md)
 
-Sphene is a discord bot that replaces twitter and bluesky links with various other sources that aim to fix the bug/broken embeds twitter and bluesky have.
+Sphene is a discord bot that replaces twitter, bluesky, instagram and tiktok links with various other sources that aim to fix the bug/broken embeds these sites have.
 
 ### Invite
 
@@ -32,4 +32,4 @@ When sending it a tweet via DMs it'll automatically send it to a designated chan
 
 ## [Thorium](./thorium/README.md)
 
-Thorium is a library that extracts Twitter and Bluesky links either to convert them to better alternatives or to directly download the content within. It is used to run Sphene and Titanite but can be used with any program you want.
+Thorium is a library that extracts various links either to convert them to better alternatives or to directly download the content within. It is used to run Sphene and Titanite but can be used with any program you want.
