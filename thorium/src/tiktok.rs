@@ -1,4 +1,5 @@
-pub const TIKTOK_URL: &str = "https://tiktok.com/";
+pub const TIKTOK_URL: &str = "https://www.tiktok.com/";
+pub const TIKTOK_NWWW_URL: &str = "https://tiktok.com/";
 pub const VXTIKTOK_URL: &str = "https://vxtiktok.com/";
 
 #[derive(Debug, PartialEq)]
@@ -18,7 +19,7 @@ impl UrlType {
     }
 
     pub fn from_string(url: &str) -> UrlType {
-        if url.contains(TIKTOK_URL) {
+        if url.contains(TIKTOK_URL) || url.contains(TIKTOK_NWWW_URL) {
             return UrlType::TikTok;
         } else if url.contains(VXTIKTOK_URL) {
             return UrlType::VXTikTok;

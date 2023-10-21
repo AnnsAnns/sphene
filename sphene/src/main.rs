@@ -373,8 +373,8 @@ async fn main() {
         CreateSelectMenuOption::new("🤨 Show original Twitter URL", twitter::TWITTER_URL)
             .to_owned(),
         remove_option.clone(),
-        version_option.clone(),
         disable_option.clone(),
+        version_option.clone(),
         default_option.clone(),
     ];
 
@@ -385,8 +385,8 @@ async fn main() {
         CreateSelectMenuOption::new("🖼️ Media Only", "direct_fxbsky").to_owned(),
         CreateSelectMenuOption::new("☁️ Show original Bluesky URL", bluesky::BLUESKY_URL).to_owned(),
         remove_option.clone(),
-        version_option.clone(),
         disable_option.clone(),
+        version_option.clone(),
         default_option.clone(),
     ];
 
@@ -396,8 +396,8 @@ async fn main() {
         CreateSelectMenuOption::new("📸 Show original Instagram URL", instagram::INSTAGRAM_URL)
             .to_owned(),
         remove_option.clone(),
-        version_option.clone(),
         disable_option.clone(),
+        version_option.clone(),
         default_option.clone(),
     ];
 
@@ -405,11 +405,10 @@ async fn main() {
         download_option.clone(),
         CreateSelectMenuOption::new("🔄️ Change to: VXTikTok", tiktok::VXTIKTOK_URL).to_owned(),
         CreateSelectMenuOption::new("🖼️ Media Only", "direct_vxtiktok").to_owned(),
-        CreateSelectMenuOption::new("📸 Show original Instagram URL", tiktok::TIKTOK_URL)
-            .to_owned(),
+        CreateSelectMenuOption::new("👶 Show original TikTok URL", tiktok::TIKTOK_URL).to_owned(),
         remove_option.clone(),
-        version_option.clone(),
         disable_option.clone(),
+        version_option.clone(),
         default_option.clone(),
     ];
 
