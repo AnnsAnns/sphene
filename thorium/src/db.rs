@@ -16,9 +16,9 @@ pub struct Server {
 const STANDARD_SERVER: Server = Server {
     id: 0,
     twitter: true,
-    bluesky: true,
+    bluesky: false,
     instagram: true,
-    tiktok: true,
+    tiktok: false, // Currently broken-ish under very specific circumstances that cause recursion
 };
 
 impl DBConn {
