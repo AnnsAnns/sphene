@@ -35,7 +35,7 @@ const REGEX_URL_EXTRACTOR: &str = r"\b(?:https?:\/\/|<)[^\s>]+(?:>|)\b";
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
-        let url: String;
+        let mut url: String;
         let content = msg.content.clone();
         let options: Vec<CreateSelectMenuOption>;
 
@@ -51,6 +51,11 @@ impl EventHandler for Handler {
             url = twitter::remove_tracking(
                 twitter::convert_url_lazy(content, twitter::UrlType::Vxtwitter).await,
             );
+            // Get everything after the .com/
+            let option = url.split_once(".com/").unwrap().1;
+            let append = format!("\n\n*ℹ️ See without \"X\" Account (via random Nitter instance): <https://twiiit.com/{}>*", option);
+            url.push_str(&append);
+            
             options = self.options_twitter.clone();
         } else if bluesky::is_bluesky_url(content.as_str())
             && self.dbconn.lock().await.get_server(id, false).bluesky
