@@ -165,7 +165,7 @@ impl EventHandler for Handler {
         }
 
         let component = interaction.as_message_component().unwrap().clone();
-        let command = component.data.values.get(0).unwrap();
+        let command = component.data.values.first().unwrap();
         let msg = &component.message;
 
         if !msg.author.bot {
