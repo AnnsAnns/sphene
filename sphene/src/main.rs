@@ -181,7 +181,7 @@ impl EventHandler for Handler {
             || command == "disable"
         {
             let content = if command == "version" {
-                "☁️ The Source Code can be found at: https://github.com/AnnsAnna/sphene".to_string()
+                "☁️ The Source Code can be found at: https://github.com/AnnsAnns/sphene".to_string()
             } else if command == "menu" {
                 "🕺 https://www.youtube.com/watch?v=dQw4w9WgXcQ".to_string()
             } else if command == "disable" {
