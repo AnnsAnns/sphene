@@ -35,7 +35,7 @@ const REGEX_URL_EXTRACTOR: &str = r"\b(?:https?:\/\/|<)[^\s>]+(?:>|)\b";
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, context: Context, msg: Message) {
-        let mut url: String;
+        let url: String;
         let content = msg.content.clone();
         let options: Vec<CreateSelectMenuOption>;
 
@@ -61,7 +61,7 @@ impl EventHandler for Handler {
         } else if tiktok::is_tiktok_url(content.as_str())
             && self.dbconn.lock().await.get_server(id, false).tiktok
         {
-            url = tiktok::convert_url_lazy(content, tiktok::UrlType::VXTikTok).await;
+            url = tiktok::convert_url_lazy(tiktok::clear_url(content).await, tiktok::UrlType::TIKTXK).await;
             options = self.options_tiktok.clone();
         } else if instagram::is_instagram_url(content.as_str())
             && self.dbconn.lock().await.get_server(id, false).instagram
@@ -200,7 +200,7 @@ impl EventHandler for Handler {
                     .await
                 } else if tiktok::UrlType::from_string(&extracted_url) != tiktok::UrlType::Unknown {
                     tiktok::get_media_from_url(
-                        tiktok::convert_url_lazy(extracted_url, tiktok::UrlType::VXTikTok).await,
+                        tiktok::convert_url_lazy(extracted_url, tiktok::UrlType::TIKTXK).await,
                     )
                     .await
                 } else {
@@ -309,9 +309,9 @@ impl EventHandler for Handler {
                     new_msg,
                     bluesky::get_media_from_url(new_msg.clone()).await
                 );
-            } else if command == "direct_vxtiktok" {
+            } else if command == "direct_tiktxk" {
                 new_msg =
-                    tiktok::convert_url_lazy(extracted_url.to_string(), tiktok::UrlType::VXTikTok)
+                    tiktok::convert_url_lazy(extracted_url.to_string(), tiktok::UrlType::TIKTXK)
                         .await;
                 new_msg = format!(
                     "<{}> ({})",
@@ -404,8 +404,9 @@ async fn main() {
 
     let tiktok_options: Vec<CreateSelectMenuOption> = vec![
         download_option.clone(),
-        CreateSelectMenuOption::new("🔄️ Change to: VXTikTok", tiktok::VXTIKTOK_URL).to_owned(),
-        CreateSelectMenuOption::new("🖼️ Media Only", "direct_vxtiktok").to_owned(),
+        CreateSelectMenuOption::new("🔄️ Change to: TIKTXK", tiktok::TIKTXK_URL).to_owned(),
+        CreateSelectMenuOption::new("🔄️ Change to: TNKTOK", tiktok::TNKTOK_URL).to_owned(),
+        CreateSelectMenuOption::new("🖼️ Media Only", "direct_tiktxk").to_owned(),
         CreateSelectMenuOption::new("👶 Show original TikTok URL", tiktok::TIKTOK_URL).to_owned(),
         remove_option.clone(),
         disable_option.clone(),
