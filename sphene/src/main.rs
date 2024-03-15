@@ -19,6 +19,10 @@ use serenity::utils::MessageBuilder;
 use thorium::db::DBConn;
 use thorium::*;
 
+use rust_i18n::t;
+
+rust_i18n::i18n!("locales", fallback = "en");
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 struct Handler {
@@ -51,7 +55,7 @@ impl EventHandler for Handler {
             url = twitter::remove_tracking(
                 twitter::convert_url_lazy(content, twitter::UrlType::Vxtwitter).await,
             );
-            
+
             options = self.options_twitter.clone();
         } else if bluesky::is_bluesky_url(content.as_str())
             && self.dbconn.lock().await.get_server(id, false).bluesky
@@ -61,7 +65,9 @@ impl EventHandler for Handler {
         } else if tiktok::is_tiktok_url(content.as_str())
             && self.dbconn.lock().await.get_server(id, false).tiktok
         {
-            url = tiktok::convert_url_lazy(tiktok::clear_url(content).await, tiktok::UrlType::TIKTXK).await;
+            url =
+                tiktok::convert_url_lazy(tiktok::clear_url(content).await, tiktok::UrlType::TIKTXK)
+                    .await;
             options = self.options_tiktok.clone();
         } else if instagram::is_instagram_url(content.as_str())
             && self.dbconn.lock().await.get_server(id, false).instagram
@@ -103,9 +109,11 @@ impl EventHandler for Handler {
                 .unwrap_or(msg.author.name.clone());
             author
                 .dm(&context.http, |m| {
-                    m.content(format!(
-                        "🔗 Your message has been referenced by <@{}> ({}) in: {}",
-                        &msg.author.id, &author_nickname, &msg_url
+                    m.content(t!(
+                        "referenced",
+                        USER_ID = &msg.author.id,
+                        AUTHOR_NICKNAME = &author_nickname,
+                        MESSAGE_URL = &msg_url
                     ))
                 })
                 .await
@@ -133,7 +141,7 @@ impl EventHandler for Handler {
                     f.create_action_row(|f| {
                         f.create_select_menu(|s| {
                             s.custom_id("select")
-                                .placeholder("Nothing selected")
+                                .placeholder(t!("nothing_selected"))
                                 .min_values(1)
                                 .max_values(1)
                                 .options(|o| o.set_options(options))
@@ -143,13 +151,13 @@ impl EventHandler for Handler {
             })
             .await
         {
-            println!("Error sending message: {:?}", why);
+            println!("{}", t!("error_sending_message", WHY = why));
         };
 
         if !msg.is_private() {
             // Delete message
             if let Err(why) = msg.delete(&context.http).await {
-                println!("Error deleting message: {:?}", why);
+                println!("{}", t!("error_delete_message", WHY = why));
             }
         }
     }
@@ -177,11 +185,11 @@ impl EventHandler for Handler {
             || command == "disable"
         {
             let content = if command == "version" {
-                "☁️ The Source Code can be found at: https://github.com/AnnsAnns/sphene".to_string()
+                t!("source_code", URL = "https://github.com/AnnsAnns/sphene").to_string()
             } else if command == "menu" {
-                "🕺 https://www.youtube.com/watch?v=dQw4w9WgXcQ".to_string()
+                t!("menu_meme").to_string()
             } else if command == "disable" {
-                "⛔ Disable this bot for this site using the /change slash command!".to_string()
+                t!("disable").to_string()
             } else if command == "download" {
                 let extracted_url = self
                     .regex_pattern
@@ -212,12 +220,12 @@ impl EventHandler for Handler {
                 };
 
                 if url != "0" {
-                    format!("⏬ Your Download URL is: <{}>", url)
+                    t!("download_url", URL = url).to_string()
                 } else {
-                    "⚠️ No Download URL found!".to_string()
+                    t!("no_download").to_string()
                 }
             } else {
-                "⚠️ You are not the author of this message!".to_string()
+                t!("not_author").to_string()
             };
 
             component
@@ -242,7 +250,7 @@ impl EventHandler for Handler {
         if command == "remove" {
             if let Err(why) = component
                 .edit_original_interaction_response(&ctx.http, |m| {
-                    m.content("💣 Deleted Message")
+                    m.content(t!("deleted_message"))
                         .allowed_mentions(|am| am.empty_parse());
                     m.components(|c| c)
                 })
@@ -336,6 +344,7 @@ impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         ctx.set_activity(Activity::watching("out for embeds 🕵️"))
             .await;
+
         println!("{} is connected!", ready.user.name);
     }
 }
