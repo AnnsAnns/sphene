@@ -1665,7 +1665,7 @@ dependencies = [
 
 [[package]]
 name = "sphene"
-version = "8.2.1"
+version = "8.3.0"
 dependencies = [
  "dotenv",
  "regex",
@@ -1676,7 +1676,7 @@ dependencies = [
 
 [[package]]
 name = "sphene_config"
-version = "8.2.1"
+version = "8.3.0"
 dependencies = [
  "dotenv",
  "poise",
@@ -1823,7 +1823,7 @@ dependencies = [
 
 [[package]]
 name = "thorium"
-version = "8.2.1"
+version = "8.3.0"
 dependencies = [
  "reqwest",
  "rusqlite",
@@ -1878,7 +1878,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "titanite"
-version = "8.2.1"
+version = "8.3.0"
 dependencies = [
  "dotenv",
  "reqwest",
