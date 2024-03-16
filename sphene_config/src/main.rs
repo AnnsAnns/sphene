@@ -130,7 +130,7 @@ async fn main() {
         .intents(serenity::GatewayIntents::non_privileged())
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
-                poise::builtins::register_in_guild(ctx, &framework.options().commands, poise::serenity_prelude::GuildId(644875066982793216)).await?;
+                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data { db: dbconn })
             })
         });
