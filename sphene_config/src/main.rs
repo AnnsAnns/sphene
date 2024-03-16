@@ -22,6 +22,28 @@ pub enum EnableOrDisable {
     Disable = 0,
 }
 
+#[derive(Debug, Clone, poise::ChoiceParameter)]
+pub enum Languages {
+    English,
+    German,
+    Dutch,
+}
+
+// Allow enum to string conversion for Languages
+trait ToLanguageString {
+    fn to_language_string(&self) -> String;
+}
+
+impl ToLanguageString for Languages {
+    fn to_language_string(&self) -> String {
+        match self {
+            Languages::English => "en".to_string(),
+            Languages::German => "de-DE".to_string(),
+            Languages::Dutch => "nl-NL".to_string(),
+        }
+    }
+}
+
 fn parse_choice(choice: &Choices, mut server: Server, change_to: bool) -> Server {
     match choice {
         Choices::Twitter => {
@@ -38,6 +60,38 @@ fn parse_choice(choice: &Choices, mut server: Server, change_to: bool) -> Server
         }
     }
     server
+}
+
+#[poise::command(slash_command, prefix_command)]
+async fn set_own_language(
+    ctx: Context<'_>,
+    #[description = "Which language should the bot use for you personally?"] language: Languages,
+) -> Result<(), Error> {
+    let db = ctx.data().db.lock().await;
+    let id = ctx.author().id.0;
+    let mut server = db.get_server(id, true);
+    server.language = Some(language.to_language_string());
+    db.update_server(server);
+    ctx.say(format!("Changed language to {:#?} 👍", language)).await?;
+    Ok(())
+}
+
+#[poise::command(slash_command, prefix_command, required_permissions = "ADMINISTRATOR")]
+async fn set_guild_language(
+    ctx: Context<'_>,
+    #[description = "Which language should the bot use for this Guild?"] language: Languages,
+) -> Result<(), Error> {
+    let db = ctx.data().db.lock().await;
+    let id = if ctx.guild_id().is_some() {
+        ctx.guild_id().unwrap().0
+    } else {
+        ctx.author().id.0
+    };
+    let mut server = db.get_server(id, true);
+    server.language = Some(language.to_language_string());
+    db.update_server(server);
+    ctx.say(format!("Changed language to {:#?} 👍", language)).await?;
+    Ok(())
 }
 
 /// Displays your or another user's account creation date
@@ -69,14 +123,14 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![change()],
-            ..Default::default()
+            commands: vec![change(), set_own_language(), set_guild_language()],
+        ..Default::default()
         })
         .token(std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN"))
         .intents(serenity::GatewayIntents::non_privileged())
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
-                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                poise::builtins::register_in_guild(ctx, &framework.options().commands, poise::serenity_prelude::GuildId(644875066982793216)).await?;
                 Ok(Data { db: dbconn })
             })
         });

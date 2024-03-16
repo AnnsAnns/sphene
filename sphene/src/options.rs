@@ -15,10 +15,18 @@ pub fn get_disable_option(lang: &str) -> CreateSelectMenuOption {
     CreateSelectMenuOption::new(t!("change_info", locale = lang), "disable")
 }
 
-pub fn get_defaul_option(lang: &str) -> CreateSelectMenuOption {
+pub fn get_default_option(lang: &str) -> CreateSelectMenuOption {
     CreateSelectMenuOption::new(t!("menu", locale = lang), "menu")
         .default_selection(true)
         .to_owned()
+}
+
+pub fn get_set_language_option(lang: &str) -> CreateSelectMenuOption {
+    CreateSelectMenuOption::new(t!("change_language", locale = lang), "set_language")
+}
+
+pub fn get_contribute_language_option(lang: &str) -> CreateSelectMenuOption {
+    CreateSelectMenuOption::new(t!("contribute_languages_option", locale = lang), "contribute_language")
 }
 
 pub fn get_download_option(lang: &str) -> CreateSelectMenuOption {
@@ -34,15 +42,17 @@ pub fn get_blueksy_options(lang: &str) -> Vec<CreateSelectMenuOption> {
         get_download_option(lang),
         CreateSelectMenuOption::new(t!("psky", locale = lang), bluesky::PSKY_URL),
         CreateSelectMenuOption::new(t!("fixbluesky", locale = lang), bluesky::FIXBLUESKY_URL),
-        CreateSelectMenuOption::new(t!("mediaonly", locale = lang), "direct_fxbsky"),
+        CreateSelectMenuOption::new(t!("media_only", locale = lang), "direct_fxbsky"),
         CreateSelectMenuOption::new(
             t!("show_original_bluesky", locale = lang),
             bluesky::BLUESKY_URL,
         ),
         get_remove_option(lang),
+        get_set_language_option(lang),
+        get_contribute_language_option(lang),
         get_disable_option(lang),
         get_version_option(lang),
-        get_defaul_option(lang),
+        get_default_option(lang),
     ]
 }
 
@@ -58,9 +68,11 @@ pub fn get_twitter_options(lang: &str) -> Vec<CreateSelectMenuOption> {
             twitter::TWITTER_URL,
         ),
         get_remove_option(lang),
+        get_set_language_option(lang),
+        get_contribute_language_option(lang),
         get_disable_option(lang),
         get_version_option(lang),
-        get_defaul_option(lang),
+        get_default_option(lang),
     ]
 }
 
@@ -72,9 +84,11 @@ pub fn get_instagram_options(lang: &str) -> Vec<CreateSelectMenuOption> {
             instagram::INSTAGRAM_URL,
         ),
         get_remove_option(lang),
+        get_set_language_option(lang),
+        get_contribute_language_option(lang),
         get_disable_option(lang),
         get_version_option(lang),
-        get_defaul_option(lang),
+        get_default_option(lang),
     ]
 }
 
@@ -89,8 +103,10 @@ pub fn get_tik_tok_options(lang: &str) -> Vec<CreateSelectMenuOption> {
             tiktok::TIKTOK_URL,
         ),
         get_remove_option(lang),
+        get_set_language_option(lang),
+        get_contribute_language_option(lang),
         get_disable_option(lang),
         get_version_option(lang),
-        get_defaul_option(lang),
+        get_default_option(lang),
     ]
 }

@@ -39,7 +39,7 @@ impl DBConn {
                     twitter boolean not null,
                     bluesky boolean not null,
                     instagram boolean not null,
-                    tiktok boolean not null
+                    tiktok boolean not null,
                     language text
                 )",
                 [],
@@ -71,7 +71,10 @@ impl DBConn {
             server.unwrap()
         } else {
             if init {
-                let mut insert_statement = self.conn.prepare("INSERT INTO server (id, twitter, bluesky, instagram, tiktok, language) VALUES (?1, ?2, ?3, ?4, ?5, ?6)").unwrap();
+                let mut insert_statement = self.conn.prepare(
+                    
+                    "INSERT INTO server (id, twitter, bluesky, instagram, tiktok, language)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)").unwrap();
                 insert_statement
                     .execute(rusqlite::params![
                         id,
@@ -87,11 +90,30 @@ impl DBConn {
         }
     }
 
+    pub fn migrate_db(&self) {
+        self.conn.execute(
+            "
+            ALTER TABLE server
+            ADD COLUMN language TEXT;
+            )",
+            [],
+        )
+        .unwrap();
+    }
+
     pub fn update_server(&self, server: Server) {
         print!("{:?}", server);
         let mut stmt = self
             .conn
-            .prepare("UPDATE server SET twitter = ?1, bluesky = ?2, instagram = ?3, tiktok = ?4, language = ?5 WHERE id = ?5")
+            .prepare(
+                "UPDATE server 
+                    SET twitter = ?1,
+                        bluesky = ?2, 
+                        instagram = ?3, 
+                        tiktok = ?4, 
+                        language = ?5 
+                    WHERE id = ?6",
+            )
             .unwrap();
         stmt.execute(rusqlite::params![
             server.twitter,

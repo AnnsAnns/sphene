@@ -9,6 +9,7 @@ use options::get_instagram_options;
 use options::get_tik_tok_options;
 use options::get_twitter_options;
 use regex::Regex;
+use rust_i18n::available_locales;
 use serenity::async_trait;
 use serenity::builder::CreateSelectMenuOption;
 
@@ -25,7 +26,7 @@ use thorium::*;
 
 use rust_i18n::t;
 
-rust_i18n::i18n!("locales", fallback = "en");
+rust_i18n::i18n!("../locales", fallback = "en");
 
 mod options;
 
@@ -184,11 +185,8 @@ impl EventHandler for Handler {
             return;
         }
 
-        let id = if msg.guild_id.is_some() {
-            msg.guild_id.unwrap().0
-        } else {
-            msg.author.id.0
-        };
+        // Get guild ID
+        let id =  msg.author.id.0;
         let get_lang = match self.dbconn.lock().await.get_server(id, false).language {
             Some(lang) => lang,
             None => "en".to_string(),
@@ -203,6 +201,8 @@ impl EventHandler for Handler {
             || command == "download"
             || command == "menu"
             || command == "disable"
+            || command == "set_language"
+            || command == "contribute_language"
         {
             let content = if command == "version" {
                 t!("source_code", locale=lang, URL = "https://github.com/AnnsAnns/sphene").to_string()
@@ -210,6 +210,8 @@ impl EventHandler for Handler {
                 t!("menu_meme").to_string()
             } else if command == "disable" {
                 t!("disable").to_string()
+            } else if command == "set_language" || command == "contribute_language"{
+                t!("contribute_language", locale=lang, URL="https://github.com/AnnsAnns/sphene/locales").to_string()
             } else if command == "download" {
                 let extracted_url = self
                     .regex_pattern
@@ -383,6 +385,8 @@ async fn main() {
     let regex_pattern = Regex::new(REGEX_URL_EXTRACTOR).unwrap();
 
     let dbconn = Mutex::new(DBConn::new().unwrap());
+
+    println!("Available Languages: {:?}", available_locales!());
 
     let mut client = Client::builder(&token, intents)
         .event_handler(Handler {
