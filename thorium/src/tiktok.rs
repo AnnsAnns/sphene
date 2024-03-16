@@ -39,7 +39,7 @@ pub fn is_tiktok_url(url: &str) -> bool {
 }
 
 pub async fn convert_url(url: String, from: UrlType, to: UrlType) -> String {
-    return clear_url(url).await.replace(from.as_str(), to.as_str());
+    clear_url(url).await.replace(from.as_str(), to.as_str())
 }
 
 pub async fn convert_url_lazy(url: String, to: UrlType) -> String {
