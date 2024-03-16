@@ -4,6 +4,10 @@ extern crate dotenv;
 
 use dotenv::dotenv;
 
+use options::get_blueksy_options;
+use options::get_instagram_options;
+use options::get_tik_tok_options;
+use options::get_twitter_options;
 use regex::Regex;
 use serenity::async_trait;
 use serenity::builder::CreateSelectMenuOption;
@@ -23,13 +27,11 @@ use rust_i18n::t;
 
 rust_i18n::i18n!("locales", fallback = "en");
 
+mod options;
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 struct Handler {
-    options_twitter: Vec<CreateSelectMenuOption>,
-    options_bluesky: Vec<CreateSelectMenuOption>,
-    options_instagram: Vec<CreateSelectMenuOption>,
-    options_tiktok: Vec<CreateSelectMenuOption>,
     regex_pattern: Regex,
     dbconn: Mutex<db::DBConn>,
 }
@@ -49,6 +51,12 @@ impl EventHandler for Handler {
             msg.author.id.0
         };
 
+        let get_lang = match self.dbconn.lock().await.get_server(id, false).language {
+            Some(lang) => lang,
+            None => "en".to_string(),
+        };
+        let lang = get_lang.as_str();
+
         if twitter::is_twitter_url(content.as_str())
             && self.dbconn.lock().await.get_server(id, false).twitter
         {
@@ -56,24 +64,24 @@ impl EventHandler for Handler {
                 twitter::convert_url_lazy(content, twitter::UrlType::Vxtwitter).await,
             );
 
-            options = self.options_twitter.clone();
+            options = get_twitter_options(lang);
         } else if bluesky::is_bluesky_url(content.as_str())
             && self.dbconn.lock().await.get_server(id, false).bluesky
         {
             url = bluesky::convert_url_lazy(content, bluesky::UrlType::FixBluesky).await;
-            options = self.options_bluesky.clone();
+            options = get_blueksy_options(lang);
         } else if tiktok::is_tiktok_url(content.as_str())
             && self.dbconn.lock().await.get_server(id, false).tiktok
         {
             url =
                 tiktok::convert_url_lazy(tiktok::clear_url(content).await, tiktok::UrlType::TIKTXK)
                     .await;
-            options = self.options_tiktok.clone();
+            options = get_tik_tok_options(lang);
         } else if instagram::is_instagram_url(content.as_str())
             && self.dbconn.lock().await.get_server(id, false).instagram
         {
             url = instagram::convert_url_lazy(content, instagram::UrlType::DDInstagram).await;
-            options = self.options_instagram.clone();
+            options = get_instagram_options(lang);
         } else if msg.referenced_message.is_some() {
             let ref_message = &msg.referenced_message.clone().unwrap();
             if ref_message.author.id != context.http.get_current_user().await.unwrap().id {
@@ -110,7 +118,7 @@ impl EventHandler for Handler {
             author
                 .dm(&context.http, |m| {
                     m.content(t!(
-                        "referenced",
+                        "referenced", locale=lang,
                         USER_ID = &msg.author.id,
                         AUTHOR_NICKNAME = &author_nickname,
                         MESSAGE_URL = &msg_url
@@ -141,7 +149,7 @@ impl EventHandler for Handler {
                     f.create_action_row(|f| {
                         f.create_select_menu(|s| {
                             s.custom_id("select")
-                                .placeholder(t!("nothing_selected"))
+                                .placeholder(t!("nothing_selected", locale=lang))
                                 .min_values(1)
                                 .max_values(1)
                                 .options(|o| o.set_options(options))
@@ -151,13 +159,13 @@ impl EventHandler for Handler {
             })
             .await
         {
-            println!("{}", t!("error_sending_message", WHY = why));
+            println!("{}", t!("error_sending_message", locale=lang, WHY = why));
         };
 
         if !msg.is_private() {
             // Delete message
             if let Err(why) = msg.delete(&context.http).await {
-                println!("{}", t!("error_delete_message", WHY = why));
+                println!("{}", t!("error_delete_message", locale=lang, WHY = why));
             }
         }
     }
@@ -176,6 +184,18 @@ impl EventHandler for Handler {
             return;
         }
 
+        let id = if msg.guild_id.is_some() {
+            msg.guild_id.unwrap().0
+        } else {
+            msg.author.id.0
+        };
+        let get_lang = match self.dbconn.lock().await.get_server(id, false).language {
+            Some(lang) => lang,
+            None => "en".to_string(),
+        };
+        let lang = get_lang.as_str();
+
+
         let user = &component.user.id.to_string();
         // Check whether user is correct
         if !msg.content.contains(user)
@@ -185,7 +205,7 @@ impl EventHandler for Handler {
             || command == "disable"
         {
             let content = if command == "version" {
-                t!("source_code", URL = "https://github.com/AnnsAnns/sphene").to_string()
+                t!("source_code", locale=lang, URL = "https://github.com/AnnsAnns/sphene").to_string()
             } else if command == "menu" {
                 t!("menu_meme").to_string()
             } else if command == "disable" {
@@ -220,12 +240,12 @@ impl EventHandler for Handler {
                 };
 
                 if url != "0" {
-                    t!("download_url", URL = url).to_string()
+                    t!("download_url", locale=lang, URL = url).to_string()
                 } else {
-                    t!("no_download").to_string()
+                    t!("no_download", locale=lang).to_string()
                 }
             } else {
-                t!("not_author").to_string()
+                t!("not_author", locale=lang).to_string()
             };
 
             component
@@ -250,7 +270,7 @@ impl EventHandler for Handler {
         if command == "remove" {
             if let Err(why) = component
                 .edit_original_interaction_response(&ctx.http, |m| {
-                    m.content(t!("deleted_message"))
+                    m.content(t!("deleted_message", locale=lang))
                         .allowed_mentions(|am| am.empty_parse());
                     m.components(|c| c)
                 })
@@ -360,79 +380,12 @@ async fn main() {
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
 
-    let default_option = CreateSelectMenuOption::new("Menu", "menu")
-        .default_selection(true)
-        .to_owned();
-    let remove_option = CreateSelectMenuOption::new("❌ Remove this Message", "remove").to_owned();
-    let version_option = CreateSelectMenuOption::new(
-        format!("🏳️‍⚧️ Running v{} of Sphene using Thorium", VERSION),
-        "version",
-    )
-    .to_owned();
-    let download_option = CreateSelectMenuOption::new("⏬ Download Media", "download").to_owned();
-    let disable_option =
-        CreateSelectMenuOption::new("⛔ Use /change to disable bot for this site!", "disable")
-            .to_owned();
-
-    let twitter_options: Vec<CreateSelectMenuOption> = vec![
-        download_option.clone(),
-        CreateSelectMenuOption::new("🔄️ Change to: VXTwitter", twitter::VXTWITTER_URL).to_owned(),
-        CreateSelectMenuOption::new("🔄️ Change to: FXTwitter", twitter::FXTWITTER_URL).to_owned(),
-        CreateSelectMenuOption::new("🖼️ Media Only: VXTwitter", "direct_vx").to_owned(),
-        CreateSelectMenuOption::new("🖼️ Media Only: FXTwitter", "direct_fx").to_owned(),
-        CreateSelectMenuOption::new("🤨 Show original Twitter URL", twitter::TWITTER_URL)
-            .to_owned(),
-        remove_option.clone(),
-        disable_option.clone(),
-        version_option.clone(),
-        default_option.clone(),
-    ];
-
-    let bluesky_options: Vec<CreateSelectMenuOption> = vec![
-        download_option.clone(),
-        CreateSelectMenuOption::new("🔄️ Change to: Psky", bluesky::PSKY_URL).to_owned(),
-        CreateSelectMenuOption::new("🔄️ Change to: FixBluesky", bluesky::FIXBLUESKY_URL).to_owned(),
-        CreateSelectMenuOption::new("🖼️ Media Only", "direct_fxbsky").to_owned(),
-        CreateSelectMenuOption::new("☁️ Show original Bluesky URL", bluesky::BLUESKY_URL).to_owned(),
-        remove_option.clone(),
-        disable_option.clone(),
-        version_option.clone(),
-        default_option.clone(),
-    ];
-
-    let instagram_options: Vec<CreateSelectMenuOption> = vec![
-        CreateSelectMenuOption::new("🔄️ Change to: DDInstagram", instagram::DDINSTAGRAM_URL)
-            .to_owned(),
-        CreateSelectMenuOption::new("📸 Show original Instagram URL", instagram::INSTAGRAM_URL)
-            .to_owned(),
-        remove_option.clone(),
-        disable_option.clone(),
-        version_option.clone(),
-        default_option.clone(),
-    ];
-
-    let tiktok_options: Vec<CreateSelectMenuOption> = vec![
-        download_option.clone(),
-        CreateSelectMenuOption::new("🔄️ Change to: TIKTXK", tiktok::TIKTXK_URL).to_owned(),
-        CreateSelectMenuOption::new("🔄️ Change to: TNKTOK", tiktok::TNKTOK_URL).to_owned(),
-        CreateSelectMenuOption::new("🖼️ Media Only", "direct_tiktxk").to_owned(),
-        CreateSelectMenuOption::new("👶 Show original TikTok URL", tiktok::TIKTOK_URL).to_owned(),
-        remove_option.clone(),
-        disable_option.clone(),
-        version_option.clone(),
-        default_option.clone(),
-    ];
-
     let regex_pattern = Regex::new(REGEX_URL_EXTRACTOR).unwrap();
 
     let dbconn = Mutex::new(DBConn::new().unwrap());
 
     let mut client = Client::builder(&token, intents)
         .event_handler(Handler {
-            options_twitter: twitter_options,
-            options_bluesky: bluesky_options,
-            options_instagram: instagram_options,
-            options_tiktok: tiktok_options,
             regex_pattern,
             dbconn,
         })
