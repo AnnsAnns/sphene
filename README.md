@@ -33,3 +33,9 @@ When sending it a tweet via DMs it'll automatically send it to a designated chan
 ## [Thorium](./thorium/README.md)
 
 Thorium is a library that extracts various links either to convert them to better alternatives or to directly download the content within. It is used to run Sphene and Titanite but can be used with any program you want.
+
+## [Internationalization](./locales/README.md)
+
+This folder contains internationalization (i18n) files for translating the bot messages into different languages. When translating, follow the instructions in the README.
+
+All languages are welcome, and your contributions are greatly appreciated!
