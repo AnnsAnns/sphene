@@ -13,6 +13,10 @@ use rust_i18n::available_locales;
 use serenity::all::CreateActionRow;
 use serenity::all::CreateAllowedMentions;
 use serenity::all::CreateMessage;
+use serenity::all::CreateSelectMenu;
+use serenity::all::CreateSelectMenuKind;
+use serenity::all::Interaction;
+use serenity::all::InteractionType;
 use serenity::all::UserId;
 use serenity::async_trait;
 use serenity::builder::CreateSelectMenuOption;
@@ -147,21 +151,15 @@ impl EventHandler for Handler {
             message.reference_message(msg.message_reference.clone().unwrap());
         };
 
-        let selectMenu = CreateSelectMenuOption::new().
+        let selectMenu =
+            CreateSelectMenu::new("select", CreateSelectMenuKind::String { options: options })
+                .max_values(1)
+                .min_values(1)
+                .placeholder(t!("nothing_selected", locale = lang));
 
-        let actionRow = CreateActionRow::SelectMenu(())
+        let actionRow = CreateActionRow::SelectMenu(selectMenu);
 
-        message.components(|f| {
-            f.create_action_row(|f| {
-                f.create_select_menu(|s| {
-                    s.custom_id("select")
-                        .placeholder(t!("nothing_selected", locale = lang))
-                        .min_values(1)
-                        .max_values(1)
-                        .options(|o| o.set_options(options))
-                })
-            })
-        });
+        message.components(vec![actionRow]);
 
         if let Err(why) = msg.channel_id.send_message(&context.http, message).await {
             println!("{}", t!("error_sending_message", locale = lang, WHY = why));
@@ -177,7 +175,7 @@ impl EventHandler for Handler {
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         // Check whether button has been pressed
-        if interaction.kind() != InteractionType::MessageComponent {
+        if interaction.kind() != InteractionType::Component {
             return;
         }
 
