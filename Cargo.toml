@@ -3,7 +3,6 @@ members = [
     "sphene",
     "thorium",
     "titanite",
-    "sphene_config"
 ]
 resolver = "2"
 

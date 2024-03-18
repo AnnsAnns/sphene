@@ -12,3 +12,5 @@ tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 poise = "0.6.1"
 thorium = { path = "../thorium" }
 rust-i18n = "3.0.1"
+regex = "1.9.3"
+lazy_static = "1.4.0"
