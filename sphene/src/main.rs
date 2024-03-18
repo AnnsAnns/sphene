@@ -1,10 +1,10 @@
 use poise::serenity_prelude as serenity;
-use thorium::db::{DBConn, Server};
+use thorium::db::{DBConn};
 use tokio::sync::Mutex;
 use commands::set_lang::{set_guild_language, set_own_language};
 use commands::change::change;
 
-use rust_i18n::t;
+
 
 rust_i18n::i18n!("../locales", fallback = "en");
 

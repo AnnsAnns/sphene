@@ -1,4 +1,4 @@
-use poise::serenity_prelude::{Context, FullEvent};
+use poise::serenity_prelude::{Context, FullEvent, Interaction};
 
 use crate::{Data, Error};
 
@@ -19,7 +19,12 @@ pub async fn event_handler(
             message_event::message(ctx, new_message.clone(), &data.db).await;
         }
         FullEvent::InteractionCreate { interaction } => {
-            interaction_event::interaction_create(ctx, interaction.clone(), &data.db).await;
+            match interaction {
+                Interaction::Component(component) => {
+                    interaction_event::interaction_create(ctx, component.clone(), &data.db).await;
+                }
+                _ => {}
+            }
         }
         _ => {}
     }

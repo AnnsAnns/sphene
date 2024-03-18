@@ -1,6 +1,6 @@
 use poise::serenity_prelude::{
     Context, CreateActionRow, CreateAllowedMentions, CreateMessage,
-    CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption, FullEvent, Message,
+    CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption, Message,
     MessageBuilder, UserId,
 };
 use rust_i18n::t;
@@ -11,7 +11,6 @@ use crate::{
     options::{
         get_blueksy_options, get_instagram_options, get_tik_tok_options, get_twitter_options,
     },
-    Data,
 };
 
 pub async fn message(context: &Context, msg: Message, dbconn: &Mutex<DBConn>) {
@@ -119,7 +118,7 @@ pub async fn message(context: &Context, msg: Message, dbconn: &Mutex<DBConn>) {
     };
 
     let selectMenu =
-        CreateSelectMenu::new("select", CreateSelectMenuKind::String { options: options })
+        CreateSelectMenu::new("select", CreateSelectMenuKind::String { options })
             .max_values(1)
             .min_values(1)
             .placeholder(t!("nothing_selected", locale = lang));

@@ -1,25 +1,26 @@
+use std::any::Any;
+
 use poise::serenity_prelude::{
-    Context, CreateActionRow, CreateAllowedMentions, CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption, EditInteractionResponse, FullEvent, Interaction, InteractionType, Message, MessageBuilder, UserId
+    ComponentInteraction, Context, CreateAllowedMentions, CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse, Interaction, InteractionType
 };
 use rust_i18n::t;
 use thorium::{bluesky, db::DBConn, instagram, tiktok, twitter};
 use tokio::sync::Mutex;
 
-use crate::utils::REGEX_URL;
+use crate::utils::{REGEX_URL_EXTRACTOR};
 
-pub async fn interaction_create(ctx: &Context, interaction: Interaction, dbconn: &Mutex<DBConn>) {
-    // Check whether button has been pressed
-    if interaction.kind() != InteractionType::Component {
-        return;
-    }
-
-    let component = interaction.as_message_component().unwrap().clone();
-    let command = &component.data.custom_id;
+pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, dbconn: &Mutex<DBConn>) {
+    let command = &component.data.custom_id; // Appears to be incorrect
     let msg = &component.message;
 
     if !msg.author.bot {
         return;
     }
+
+    println!("Command: {}", command);
+    println!("Message: {:?}", msg.content);
+
+    let regex = regex::Regex::new(REGEX_URL_EXTRACTOR).unwrap();
 
     // Get guild ID
     let id = msg.author.id.get();
@@ -58,7 +59,7 @@ pub async fn interaction_create(ctx: &Context, interaction: Interaction, dbconn:
             )
             .to_string()
         } else if command == "download" {
-            let extracted_url = REGEX_URL
+            let extracted_url = regex
                 .find_iter(&msg.content)
                 .next()
                 .unwrap()
@@ -134,7 +135,7 @@ pub async fn interaction_create(ctx: &Context, interaction: Interaction, dbconn:
             println!("Error deleting message: {:?}", why);
         }
     } else {
-        let extracted_url = REGEX_URL
+        let extracted_url = regex
             .find_iter(&msg.content)
             .next()
             .unwrap()
@@ -142,10 +143,13 @@ pub async fn interaction_create(ctx: &Context, interaction: Interaction, dbconn:
             .to_string();
         let mut new_msg: String = String::new();
 
-        let mut twitter_urltype = twitter::UrlType::from_string(&command);
-        let bluesky_urltype = bluesky::UrlType::from_string(&command);
-        let instagram_urltype = instagram::UrlType::from_string(&command);
-        let tiktok_urltype = tiktok::UrlType::from_string(&command);
+        let mut twitter_urltype = twitter::UrlType::from_string(command);
+        let bluesky_urltype = bluesky::UrlType::from_string(command);
+        let instagram_urltype = instagram::UrlType::from_string(command);
+        let tiktok_urltype = tiktok::UrlType::from_string(command);
+
+        println!("Extracted URL: {}", extracted_url);
+        println!("Twitter URL type: {:?}", twitter_urltype);
 
         if twitter_urltype != twitter::UrlType::Unknown {
             new_msg = twitter::convert_url_lazy(extracted_url, twitter_urltype).await;
@@ -192,6 +196,8 @@ pub async fn interaction_create(ctx: &Context, interaction: Interaction, dbconn:
         }
 
         new_msg = format!("<@{}>: {}", user, new_msg);
+
+        println!("New message: {}", new_msg);
 
         let new_response = EditInteractionResponse::new()
             .content(new_msg)

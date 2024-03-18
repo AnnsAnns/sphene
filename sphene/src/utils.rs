@@ -1,6 +1,5 @@
-use regex::Regex;
+
 use thorium::db::Server;
-use lazy_static::lazy_static;
 
 use crate::Context;
 
@@ -12,11 +11,7 @@ pub enum Choices {
     Tiktok,
 }
 
-const REGEX_URL_EXTRACTOR: &str = r"\b(?:https?:\/\/|<)[^\s>]+(?:>|)\b";
-
-lazy_static! {
-    pub static ref REGEX_URL: Regex = Regex::new(REGEX_URL_EXTRACTOR).unwrap();
-}
+pub const REGEX_URL_EXTRACTOR: &str = r"\b(?:https?:\/\/|<)[^\s>]+(?:>|)\b";
 
 #[derive(Debug, Clone, poise::ChoiceParameter)]
 pub enum EnableOrDisable {
