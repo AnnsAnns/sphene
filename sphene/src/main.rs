@@ -10,12 +10,13 @@ use options::get_tik_tok_options;
 use options::get_twitter_options;
 use regex::Regex;
 use rust_i18n::available_locales;
+use serenity::all::CreateActionRow;
+use serenity::all::CreateAllowedMentions;
+use serenity::all::CreateMessage;
+use serenity::all::UserId;
 use serenity::async_trait;
 use serenity::builder::CreateSelectMenuOption;
 
-use serenity::model::application::interaction::Interaction;
-use serenity::model::application::interaction::InteractionResponseType;
-use serenity::model::application::interaction::InteractionType;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::prelude::Activity;
@@ -47,9 +48,9 @@ impl EventHandler for Handler {
         let options: Vec<CreateSelectMenuOption>;
 
         let id = if msg.guild_id.is_some() {
-            msg.guild_id.unwrap().0
+            msg.guild_id.unwrap().get()
         } else {
-            msg.author.id.0
+            msg.author.id.get()
         };
 
         let get_lang = match self.dbconn.lock().await.get_server(id, false).language {
@@ -99,11 +100,9 @@ impl EventHandler for Handler {
                 .to_string();
             ref_author.pop();
 
-            let author = &context
-                .http
-                .get_user(ref_author.parse::<u64>().unwrap())
-                .await
-                .unwrap();
+            let user_id = UserId::new(ref_author.parse::<u64>().unwrap());
+
+            let author = &context.http.get_user(user_id).await.unwrap();
 
             // Ignore people that reply to their own messages
             if author.id == msg.author.id {
@@ -116,17 +115,16 @@ impl EventHandler for Handler {
                 .nick_in(&context.http, &msg.guild_id.unwrap())
                 .await
                 .unwrap_or(msg.author.name.clone());
-            author
-                .dm(&context.http, |m| {
-                    m.content(t!(
-                        "referenced", locale=lang,
-                        USER_ID = &msg.author.id,
-                        AUTHOR_NICKNAME = &author_nickname,
-                        MESSAGE_URL = &msg_url
-                    ))
-                })
-                .await
-                .unwrap();
+
+            let message = CreateMessage::new().content(t!(
+                "referenced",
+                locale = lang,
+                USER_ID = &msg.author.id,
+                AUTHOR_NICKNAME = &author_nickname,
+                MESSAGE_URL = &msg_url
+            ));
+
+            author.dm(&context.http, message).await.unwrap();
 
             return;
         } else {
@@ -139,34 +137,40 @@ impl EventHandler for Handler {
             .push(url)
             .build();
 
-        if let Err(why) = msg
-            .channel_id
-            .send_message(&context.http, |m| {
-                m.allowed_mentions(|am| am.empty_parse()).content(response);
-                if msg.referenced_message.is_some() {
-                    m.reference_message(msg.message_reference.clone().unwrap());
-                }
-                m.components(|f| {
-                    f.create_action_row(|f| {
-                        f.create_select_menu(|s| {
-                            s.custom_id("select")
-                                .placeholder(t!("nothing_selected", locale=lang))
-                                .min_values(1)
-                                .max_values(1)
-                                .options(|o| o.set_options(options))
-                        })
-                    })
+        let allowedMentions = CreateAllowedMentions::new().empty_users().empty_roles();
+
+        let mut message = CreateMessage::new()
+            .allowed_mentions(allowedMentions)
+            .content(response);
+
+        if msg.referenced_message.is_some() {
+            message.reference_message(msg.message_reference.clone().unwrap());
+        };
+
+        let selectMenu = CreateSelectMenuOption::new().
+
+        let actionRow = CreateActionRow::SelectMenu(())
+
+        message.components(|f| {
+            f.create_action_row(|f| {
+                f.create_select_menu(|s| {
+                    s.custom_id("select")
+                        .placeholder(t!("nothing_selected", locale = lang))
+                        .min_values(1)
+                        .max_values(1)
+                        .options(|o| o.set_options(options))
                 })
             })
-            .await
-        {
-            println!("{}", t!("error_sending_message", locale=lang, WHY = why));
+        });
+
+        if let Err(why) = msg.channel_id.send_message(&context.http, message).await {
+            println!("{}", t!("error_sending_message", locale = lang, WHY = why));
         };
 
         if !msg.is_private() {
             // Delete message
             if let Err(why) = msg.delete(&context.http).await {
-                println!("{}", t!("error_delete_message", locale=lang, WHY = why));
+                println!("{}", t!("error_delete_message", locale = lang, WHY = why));
             }
         }
     }
@@ -186,13 +190,12 @@ impl EventHandler for Handler {
         }
 
         // Get guild ID
-        let id =  msg.author.id.0;
+        let id = msg.author.id.0;
         let get_lang = match self.dbconn.lock().await.get_server(id, false).language {
             Some(lang) => lang,
             None => "en".to_string(),
         };
         let lang = get_lang.as_str();
-
 
         let user = &component.user.id.to_string();
         // Check whether user is correct
@@ -205,13 +208,23 @@ impl EventHandler for Handler {
             || command == "contribute_language"
         {
             let content = if command == "version" {
-                t!("source_code", locale=lang, URL = "https://github.com/AnnsAnns/sphene").to_string()
+                t!(
+                    "source_code",
+                    locale = lang,
+                    URL = "https://github.com/AnnsAnns/sphene"
+                )
+                .to_string()
             } else if command == "menu" {
                 t!("menu_meme").to_string()
             } else if command == "disable" {
                 t!("disable").to_string()
-            } else if command == "set_language" || command == "contribute_language"{
-                t!("contribute_language", locale=lang, URL="https://github.com/AnnsAnns/sphene/locales").to_string()
+            } else if command == "set_language" || command == "contribute_language" {
+                t!(
+                    "contribute_language",
+                    locale = lang,
+                    URL = "https://github.com/AnnsAnns/sphene/locales"
+                )
+                .to_string()
             } else if command == "download" {
                 let extracted_url = self
                     .regex_pattern
@@ -242,12 +255,12 @@ impl EventHandler for Handler {
                 };
 
                 if url != "0" {
-                    t!("download_url", locale=lang, URL = url).to_string()
+                    t!("download_url", locale = lang, URL = url).to_string()
                 } else {
-                    t!("no_download", locale=lang).to_string()
+                    t!("no_download", locale = lang).to_string()
                 }
             } else {
-                t!("not_author", locale=lang).to_string()
+                t!("not_author", locale = lang).to_string()
             };
 
             component
@@ -272,7 +285,7 @@ impl EventHandler for Handler {
         if command == "remove" {
             if let Err(why) = component
                 .edit_original_interaction_response(&ctx.http, |m| {
-                    m.content(t!("deleted_message", locale=lang))
+                    m.content(t!("deleted_message", locale = lang))
                         .allowed_mentions(|am| am.empty_parse());
                     m.components(|c| c)
                 })
