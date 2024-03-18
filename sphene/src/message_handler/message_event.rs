@@ -107,25 +107,25 @@ pub async fn message(context: &Context, msg: Message, dbconn: &Mutex<DBConn>) {
         .push(url)
         .build();
 
-    let allowedMentions = CreateAllowedMentions::new().empty_users().empty_roles();
+    let allowed_mentions = CreateAllowedMentions::new().empty_users().empty_roles();
 
     let mut message = CreateMessage::new()
-        .allowed_mentions(allowedMentions)
+        .allowed_mentions(allowed_mentions)
         .content(response);
 
     if msg.referenced_message.is_some() {
         message = message.reference_message(msg.message_reference.clone().unwrap());
     };
 
-    let selectMenu =
+    let select_menu =
         CreateSelectMenu::new("select", CreateSelectMenuKind::String { options })
             .max_values(1)
             .min_values(1)
             .placeholder(t!("nothing_selected", locale = lang));
 
-    let actionRow = CreateActionRow::SelectMenu(selectMenu);
+    let action_row = CreateActionRow::SelectMenu(select_menu);
 
-    message = message.components(vec![actionRow]);
+    message = message.components(vec![action_row]);
 
     if let Err(why) = msg.channel_id.send_message(&context.http, message).await {
         println!("{}", t!("error_sending_message", locale = lang, WHY = why));
