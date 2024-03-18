@@ -1,6 +1,10 @@
-## Sphene Config
+## Sphene
 
-Sphene Config is a shard of the Sphene discord bot that allows you to configure the bot via slash commands.
+Sphene is a discord bot that replaces twitter, bluesky, instagram and tiktok links with various other sources that aim to fix the bug/broken embeds these sites have.
+
+### Example
+
+![](./.github/screenshot.png)
 
 ### Invite
 
