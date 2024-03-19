@@ -1,9 +1,9 @@
-use serenity::builder::CreateSelectMenuOption;
+use poise::serenity_prelude::CreateSelectMenuOption;
 
 use rust_i18n::t;
 use thorium::{bluesky, instagram, tiktok, twitter};
 
-use crate::VERSION;
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 rust_i18n::i18n!("locales", fallback = "en");
 
