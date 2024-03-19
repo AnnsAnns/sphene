@@ -1,7 +1,7 @@
 
 
 use poise::serenity_prelude::{
-    ComponentInteraction, ComponentInteractionDataKind, Context, CreateAllowedMentions, CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse
+    ComponentInteraction, ComponentInteractionDataKind, Context, CreateActionRow, CreateAllowedMentions, CreateInteractionResponse, CreateInteractionResponseFollowup, CreateInteractionResponseMessage, EditInteractionResponse, EditMessage
 };
 use rust_i18n::t;
 use thorium::{bluesky, db::DBConn, instagram, tiktok, twitter};
@@ -9,13 +9,13 @@ use tokio::sync::Mutex;
 
 use crate::utils::{REGEX_URL_EXTRACTOR};
 
-pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, id: &String, dbconn: &Mutex<DBConn>) {
+pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, dbconn: &Mutex<DBConn>) {
     let command = match &component.data.kind {
         ComponentInteractionDataKind::StringSelect { values, .. } => values[0].as_str(),
         _ => return (),
     };
 
-    let msg = &component.message;
+    let mut msg = &component.message;
 
     if !msg.author.bot {
         return;
@@ -26,13 +26,19 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
 
     let regex = regex::Regex::new(REGEX_URL_EXTRACTOR).unwrap();
 
-    // Get guild ID
+    // Get user id
     let id = msg.author.id.get();
     let get_lang = match dbconn.lock().await.get_server(id, false).language {
         Some(lang) => lang,
         None => "en".to_string(),
     };
     let lang = get_lang.as_str();
+
+    // Make the Discord API happy :)
+    component
+    .create_response(&ctx.http, CreateInteractionResponse::Defer(CreateInteractionResponseMessage::new()))
+    .await
+    .unwrap();
 
     let user = &component.user.id.to_string();
     // Check whether user is correct
@@ -101,22 +107,15 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
             t!("not_author", locale = lang).to_string()
         };
         
-        let response_msg = CreateInteractionResponseMessage::new().content(content).ephemeral(true);
-        let response = CreateInteractionResponse::Defer(response_msg);
+        let response = CreateInteractionResponseFollowup::new().content(content).ephemeral(true);
 
         component
-            .create_response(&ctx.http, response)
+            .create_followup(&ctx.http, response)
             .await
             .unwrap();
 
         return;
-    } else {
-        // Make the Discord API happy :)
-        component
-            .create_response(&ctx.http, CreateInteractionResponse::Defer(CreateInteractionResponseMessage::new()))
-            .await
-            .unwrap();
-    }
+    } 
 
     if command == "remove" {
         let interaction_response = EditInteractionResponse::new()
@@ -129,6 +128,8 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
         {
             println!("Error editing message: {:?}", why);
         }
+
+        msg.delete(&ctx.http).await.unwrap();
 
         // Sleep for 5 seconds
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
@@ -205,15 +206,17 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
 
         println!("New message: {}", new_msg);
 
-        let new_response = EditInteractionResponse::new()
+        let edit_message = EditMessage::new()
             .content(new_msg)
             .allowed_mentions(CreateAllowedMentions::new().empty_roles().empty_users());
 
-        if let Err(why) = component
-            .edit_response(&ctx.http,  new_response)
+        if let Err(why) = msg.to_owned()
+            .edit(&ctx.http,  edit_message)
             .await
         {
             println!("Error editing message: {:?}", why);
         }
+
+        component.delete_response(&ctx.http).await.unwrap();
     }
 }

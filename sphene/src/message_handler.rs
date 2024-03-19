@@ -21,8 +21,7 @@ pub async fn event_handler(
         FullEvent::InteractionCreate { interaction } => {
             match interaction {
                 Interaction::Component(component) => {
-                    let id = &component.data.custom_id;
-                    interaction_event::interaction_create(ctx, component.clone(), id, &data.db).await;
+                    interaction_event::interaction_create(ctx, component.clone(),  &data.db).await;
                 }
                 _ => {}
             }

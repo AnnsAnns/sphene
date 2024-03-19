@@ -1,3 +1,5 @@
+use std::convert;
+
 use poise::serenity_prelude::{
     Context, CreateActionRow, CreateAllowedMentions, CreateMessage,
     CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption, Message,
@@ -8,16 +10,12 @@ use thorium::{bluesky, db::DBConn, instagram, tiktok, twitter};
 use tokio::sync::Mutex;
 
 use crate::{
-    options::{
+    commands::convert_url::convert_url, options::{
         get_blueksy_options, get_instagram_options, get_tik_tok_options, get_twitter_options,
-    },
+    }
 };
 
 pub async fn message(context: &Context, msg: Message, dbconn: &Mutex<DBConn>) {
-    let url: String;
-    let content = msg.content.clone();
-    let options: Vec<CreateSelectMenuOption>;
-
     let id = if msg.guild_id.is_some() {
         msg.guild_id.unwrap().get()
     } else {
@@ -30,31 +28,11 @@ pub async fn message(context: &Context, msg: Message, dbconn: &Mutex<DBConn>) {
     };
     let lang = get_lang.as_str();
 
-    if twitter::is_twitter_url(content.as_str())
-        && dbconn.lock().await.get_server(id, false).twitter
-    {
-        url = twitter::remove_tracking(
-            twitter::convert_url_lazy(content, twitter::UrlType::Vxtwitter).await,
-        );
+    let converted_url = convert_url(msg.clone(), dbconn, id, lang).await;
 
-        options = get_twitter_options(lang);
-    } else if bluesky::is_bluesky_url(content.as_str())
-        && dbconn.lock().await.get_server(id, false).bluesky
-    {
-        url = bluesky::convert_url_lazy(content, bluesky::UrlType::FixBluesky).await;
-        options = get_blueksy_options(lang);
-    } else if tiktok::is_tiktok_url(content.as_str())
-        && dbconn.lock().await.get_server(id, false).tiktok
-    {
-        url = tiktok::convert_url_lazy(tiktok::clear_url(content).await, tiktok::UrlType::TIKTXK)
-            .await;
-        options = get_tik_tok_options(lang);
-    } else if instagram::is_instagram_url(content.as_str())
-        && dbconn.lock().await.get_server(id, false).instagram
-    {
-        url = instagram::convert_url_lazy(content, instagram::UrlType::DDInstagram).await;
-        options = get_instagram_options(lang);
-    } else if msg.referenced_message.is_some() {
+    if converted_url.is_none() && msg.referenced_message.is_none() {
+        return;
+    } else if converted_url.is_none() && msg.referenced_message.is_some() {
         let ref_message = &msg.referenced_message.clone().unwrap();
         if ref_message.author.id != context.http.get_current_user().await.unwrap().id {
             return;
@@ -97,9 +75,11 @@ pub async fn message(context: &Context, msg: Message, dbconn: &Mutex<DBConn>) {
         author.dm(&context.http, message).await.unwrap();
 
         return;
-    } else {
-        return;
     }
+
+    let converted_url = converted_url.unwrap();
+    let url = converted_url.url;
+    let options = converted_url.options;
 
     let response = MessageBuilder::new()
         .mention(&msg.author)
