@@ -21,9 +21,6 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
         return;
     }
 
-    println!("Command: {}", command);
-    println!("Message: {:?}", msg.content);
-
     let regex = regex::Regex::new(REGEX_URL_EXTRACTOR).unwrap();
 
     // Get user id
@@ -75,8 +72,6 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
                 .unwrap()
                 .as_str()
                 .to_string();
-
-            println!("Extracted URL: Download {}", extracted_url);
 
             let url = if twitter::UrlType::from_string(&extracted_url)
                 != twitter::UrlType::Unknown
@@ -155,9 +150,6 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
         let instagram_urltype = instagram::UrlType::from_string(command);
         let tiktok_urltype = tiktok::UrlType::from_string(command);
 
-        println!("Extracted URL: {}", extracted_url);
-        println!("Twitter URL type: {:?}", twitter_urltype);
-
         if twitter_urltype != twitter::UrlType::Unknown {
             new_msg = twitter::convert_url_lazy(extracted_url, twitter_urltype).await;
         } else if bluesky_urltype != bluesky::UrlType::Unknown {
@@ -203,8 +195,6 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
         }
 
         new_msg = format!("<@{}>: {}", user, new_msg);
-
-        println!("New message: {}", new_msg);
 
         let edit_message = EditMessage::new()
             .content(new_msg)
