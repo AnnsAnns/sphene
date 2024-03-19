@@ -1,21 +1,21 @@
 
 
 use poise::serenity_prelude::{
-    ComponentInteraction, ComponentInteractionDataKind, Context, CreateActionRow, CreateAllowedMentions, CreateInteractionResponse, CreateInteractionResponseFollowup, CreateInteractionResponseMessage, EditInteractionResponse, EditMessage
+    ComponentInteraction, ComponentInteractionDataKind, Context, CreateAllowedMentions, CreateInteractionResponse, CreateInteractionResponseFollowup, CreateInteractionResponseMessage, EditInteractionResponse, EditMessage
 };
 use rust_i18n::t;
 use thorium::{bluesky, db::DBConn, instagram, tiktok, twitter};
 use tokio::sync::Mutex;
 
-use crate::utils::{REGEX_URL_EXTRACTOR};
+use crate::{commands::convert_url::convert_twitter_to, utils::REGEX_URL_EXTRACTOR};
 
 pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, dbconn: &Mutex<DBConn>) {
     let command = match &component.data.kind {
         ComponentInteractionDataKind::StringSelect { values, .. } => values[0].as_str(),
-        _ => return (),
+        _ => return ,
     };
 
-    let mut msg = &component.message;
+    let msg = &component.message;
 
     if !msg.author.bot {
         return;
@@ -145,7 +145,7 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
             .to_string();
         let mut new_msg: String = String::new();
 
-        let mut twitter_urltype = twitter::UrlType::from_string(command);
+        let twitter_urltype = twitter::UrlType::from_string(command);
         let bluesky_urltype = bluesky::UrlType::from_string(command);
         let instagram_urltype = instagram::UrlType::from_string(command);
         let tiktok_urltype = tiktok::UrlType::from_string(command);
@@ -159,19 +159,10 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
         } else if tiktok_urltype != tiktok::UrlType::Unknown {
             new_msg = tiktok::convert_url_lazy(extracted_url, tiktok_urltype).await;
         } else if command == "direct_vx" || command == "direct_fx" {
-            twitter_urltype = match command {
-                "direct_vx" => twitter::UrlType::Vxtwitter,
-                "direct_fx" => twitter::UrlType::Fxtwitter,
-                _ => twitter::UrlType::Unknown,
-            };
-
-            new_msg =
-                twitter::convert_url_lazy(extracted_url.to_string(), twitter_urltype).await;
-            new_msg = format!(
-                "<{}> ({})",
-                new_msg,
-                twitter::get_media_from_url(new_msg.clone()).await
-            );
+            new_msg = convert_twitter_to(
+                extracted_url.to_string(),
+                command,
+            ).await
         } else if command == "direct_fxbsky" {
             new_msg = bluesky::convert_url_lazy(
                 extracted_url.to_string(),

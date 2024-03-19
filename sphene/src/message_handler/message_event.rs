@@ -1,18 +1,16 @@
-use std::convert;
+
 
 use poise::serenity_prelude::{
     Context, CreateActionRow, CreateAllowedMentions, CreateMessage,
-    CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption, Message,
+    CreateSelectMenu, CreateSelectMenuKind, Message,
     MessageBuilder, UserId,
 };
 use rust_i18n::t;
-use thorium::{bluesky, db::DBConn, instagram, tiktok, twitter};
+use thorium::{db::DBConn};
 use tokio::sync::Mutex;
 
 use crate::{
-    commands::convert_url::convert_url, options::{
-        get_blueksy_options, get_instagram_options, get_tik_tok_options, get_twitter_options,
-    }
+    commands::convert_url::convert_url
 };
 
 pub async fn message(context: &Context, msg: Message, dbconn: &Mutex<DBConn>) {

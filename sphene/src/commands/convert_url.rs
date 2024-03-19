@@ -2,12 +2,8 @@ use poise::serenity_prelude::{CreateSelectMenuOption, Message};
 use thorium::db::DBConn;
 use tokio::sync::Mutex;
 
-use poise::serenity_prelude::{
-    Context, CreateActionRow, CreateAllowedMentions, CreateMessage,
-    CreateSelectMenu, CreateSelectMenuKind,
-    MessageBuilder, UserId,
-};
-use rust_i18n::t;
+
+
 use thorium::{bluesky, instagram, tiktok, twitter};
 
 use crate::{
@@ -64,7 +60,7 @@ pub async fn convert_twitter_to(url: String, kind: &str) -> String {
         _ => twitter::UrlType::Unknown,
     };
 
-    let mut new_msg =
+    let new_msg =
         twitter::convert_url_lazy(url.to_string(), twitter_urltype).await;
     
     format!(
