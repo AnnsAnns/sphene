@@ -1,7 +1,7 @@
 
 
 use poise::serenity_prelude::{
-    ComponentInteraction, Context, CreateAllowedMentions, CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse
+    ComponentInteraction, ComponentInteractionDataKind, Context, CreateAllowedMentions, CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse
 };
 use rust_i18n::t;
 use thorium::{bluesky, db::DBConn, instagram, tiktok, twitter};
@@ -9,8 +9,12 @@ use tokio::sync::Mutex;
 
 use crate::utils::{REGEX_URL_EXTRACTOR};
 
-pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, dbconn: &Mutex<DBConn>) {
-    let command = &component.data.custom_id; // Appears to be incorrect
+pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, id: &String, dbconn: &Mutex<DBConn>) {
+    let command = match &component.data.kind {
+        ComponentInteractionDataKind::StringSelect { values, .. } => values[0].as_str(),
+        _ => return (),
+    };
+
     let msg = &component.message;
 
     if !msg.author.bot {
@@ -65,6 +69,8 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
                 .unwrap()
                 .as_str()
                 .to_string();
+
+            println!("Extracted URL: Download {}", extracted_url);
 
             let url = if twitter::UrlType::from_string(&extracted_url)
                 != twitter::UrlType::Unknown
@@ -160,7 +166,7 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
         } else if tiktok_urltype != tiktok::UrlType::Unknown {
             new_msg = tiktok::convert_url_lazy(extracted_url, tiktok_urltype).await;
         } else if command == "direct_vx" || command == "direct_fx" {
-            twitter_urltype = match command.as_str() {
+            twitter_urltype = match command {
                 "direct_vx" => twitter::UrlType::Vxtwitter,
                 "direct_fx" => twitter::UrlType::Fxtwitter,
                 _ => twitter::UrlType::Unknown,
