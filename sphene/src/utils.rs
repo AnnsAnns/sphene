@@ -24,6 +24,7 @@ pub enum Languages {
     English,
     German,
     Dutch,
+    BahasaIndonesia,
 }
 
 // Allow enum to string conversion for Languages
@@ -37,6 +38,7 @@ impl ToLanguageString for Languages {
             Languages::English => "en".to_string(),
             Languages::German => "de-DE".to_string(),
             Languages::Dutch => "nl-NL".to_string(),
+            Languages::BahasaIndonesia => "id-ID".to_string(),
         }
     }
 }
