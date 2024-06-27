@@ -62,7 +62,7 @@ pub async fn interaction_create(ctx: &Context, component: ComponentInteraction, 
             t!(
                 "contribute_language",
                 locale = lang,
-                URL = "https://github.com/AnnsAnns/sphene/locales"
+                URL = "https://github.com/AnnsAnns/sphene/tree/main/locales"
             )
             .to_string()
         } else if command == "download" {
