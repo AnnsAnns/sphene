@@ -1,3 +1,7 @@
+> [!WARNING]  
+> Since Twitter has become utter garbage that should not be used and Discord added a good embed for Bluesky this project doesnt have active support anymore. The bot will stay online till it breaks (Most likely in the case Discord changes the API massively) but I will not actively maintain it anymore.
+
+
 # Sphene Family of Projects
 
 ### This is a monorepo for the 4 Sphene (CaTiSiO5) projects.
