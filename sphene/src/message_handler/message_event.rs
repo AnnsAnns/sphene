@@ -8,6 +8,7 @@ use poise::serenity_prelude::{
 use rust_i18n::t;
 use thorium::{db::DBConn};
 use tokio::sync::Mutex;
+use rand::seq::{IndexedRandom, SliceRandom};
 
 use crate::{
     commands::convert_url::convert_url
@@ -79,10 +80,28 @@ pub async fn message(context: &Context, msg: Message, dbconn: &Mutex<DBConn>) {
     let url = converted_url.url;
     let options = converted_url.options;
 
+    const NEWS_URLS: [&str; 5] = [
+        "https://www.nbcnews.com/news/world/elon-musks-call-germany-move-nazi-guilt-dangerous-holocaust-memorial-c-rcna189316",
+        "https://en.wikipedia.org/wiki/Views_of_Elon_Musk#Race_and_white_nationalism",
+        "https://en.wikipedia.org/wiki/Political_activities_of_Elon_Musk",
+        "https://www.nytimes.com/2025/03/14/technology/elon-musk-x-post-hitler-stalin-mao.html",
+        "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:y5xyloyy7s4a2bwfeimj7r3b/bafkreihuamazhsgewbxcg5fyqw4akvjaspyqz7cmhpdhyztg7fon5t7v5y@jpeg"
+    ];
+
+    let article = NEWS_URLS.choose(&mut rand::rng()).unwrap().to_string();
+
+    let extra_info = if url.contains("twitter.com") {
+        // Include news link
+        format!("\n Stop using Twitter: {} \n Twitter support will stop functioning on the 1st of April!", article)
+    } else {
+        "".to_string()
+    };
+
     let response = MessageBuilder::new()
         .mention(&msg.author)
         .push(": ")
         .push(url)
+        .push(extra_info)
         .build();
 
     let allowed_mentions = CreateAllowedMentions::new().empty_users().empty_roles();

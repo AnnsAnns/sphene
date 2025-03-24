@@ -1,3 +1,4 @@
+use chrono::Datelike;
 use poise::serenity_prelude::{CreateSelectMenuOption, Message};
 use thorium::db::DBConn;
 use tokio::sync::Mutex;
@@ -22,7 +23,9 @@ pub async fn convert_url(msg: Message, dbconn: &Mutex<DBConn>, id: u64, lang: &s
     let content = msg.content.clone();
     let options: Vec<CreateSelectMenuOption>;
 
+    // Twitter support should be forcefully disabled starting in April
     if twitter::is_twitter_url(content.as_str())
+        && (chrono::Utc::now().month() < 4 && chrono::Utc::now().year() == 2025)
         && dbconn.lock().await.get_server(id, false).twitter
     {
         url = twitter::remove_tracking(
