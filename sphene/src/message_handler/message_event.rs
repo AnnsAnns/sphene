@@ -92,7 +92,7 @@ pub async fn message(context: &Context, msg: Message, dbconn: &Mutex<DBConn>) {
 
     let extra_info = if url.contains("twitter.com") {
         // Include news link
-        format!("\n Stop using Twitter: {} \n Twitter support will stop functioning on the 1st of April!", article)
+        format!("\n Stop using Twitter: {} \n Twitter support will stop functioning on the 1st of April! \n You can disable Twitter support early using `/change choice:Twitter enable_or_disable:Disable`.", article)
     } else {
         "".to_string()
     };
