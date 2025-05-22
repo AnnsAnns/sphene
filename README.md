@@ -1,5 +1,9 @@
-> [!WARNING]  
-> Since Twitter has become utter garbage that should not be used and Discord added a good embed for Bluesky this project doesnt have active support anymore. The bot will stay online till it breaks (Most likely in the case Discord changes the API massively) but I will not actively maintain it anymore.
+> [!WARNING]
+> Thank you for using Sphene.
+>
+> This project grew from a small tool I created for my friends to a fairly large ecosystem with quite huge userbase. However, I don't use Twitter anymore and so should you.
+>
+> As soon as the bot breaks it will go offline and never come back.
 
 
 # Sphene Family of Projects
